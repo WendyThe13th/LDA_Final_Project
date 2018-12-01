@@ -11,6 +11,8 @@ library(dplyr)
 library(tidyr) 
 library(lme4)
 library(janitor)
+library(corrplot)
+library(ggplot2)
 ```
 
 ```{r}
@@ -18,3 +20,14 @@ smoke <- read.csv(file = 'frmgham2.csv') %>%
   clean_names()
 ```
 
+
+```{r}
+
+corr =  smoke %>% 
+  dplyr::select(totchol, age, sysbp, diabp, bmi, sex, heartrte, cursmoke, cigpday, glucose) %>%
+    mutate(totchol = as.numeric(totchol),
+         bmi = as.numeric(bmi)) %>%
+  na.omit()
+corrplot(cor(corr), method="number",shade.col=NA, tl.col="black", tl.srt=65)
+
+```
