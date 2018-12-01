@@ -14,7 +14,7 @@ library(janitor)
 ```
 
 ```{r}
-smoke <- read.csv(file = '~/LDA_Final_Project/frmgham2.csv') %>% 
+smoke <- read.csv(file = 'frmgham2.csv') %>% 
   clean_names()
 ```
 
