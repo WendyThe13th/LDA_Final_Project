@@ -4,3 +4,17 @@ author: "Mengqi Zhu"
 date: "2018/11/29"
 output: pdf_document
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyr) 
+library(lme4)
+library(janitor)
+```
+
+```{r}
+smoke <- read.csv(file = '~/LDA_Final_Project/frmgham2.csv') %>% 
+  clean_names()
+```
+
