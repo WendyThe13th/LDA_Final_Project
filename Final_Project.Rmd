@@ -39,6 +39,18 @@ smoke %>%
   ggtitle("Figure 2: Current Smoking Status across Age and by Sex") +
   scale_colour_hue(name = "Sex") 
 
+
+#longitudinal plot
+smoke %>%
+  mutate(cursmoke = as.factor(cursmoke),
+         sex = as.factor(sex)) %>%
+  group_by(period, sex) %>%
+  count(cursmoke) %>%
+  ggplot(aes(period, n, group = cursmoke, color = cursmoke)) +
+  geom_line() +
+  facet_wrap(~sex) +
+  ggtitle("Figure 3: Current Smoking status across Period by Sex") #period = visit
+
 ```
 
 When looking at cigarette packs smoked per day, it appears that the number steadily decreases as individuals get older. The trend once again is the same in each sex however females are smoking less packs a day overall.
@@ -49,15 +61,14 @@ smoke %>%
   ggplot(aes(age, cigpday)) +
   geom_point() +
   stat_summary(fun.y = mean, geom = "line", size = 1.1, col = 'red') +
-  ggtitle("Figure 3: Packs a Day across Age")
+  ggtitle("Figure 4: Packs a Day across Age")
 
 smoke %>%
   ggplot(aes(age, cigpday, group = sex)) +
   geom_point() +
   stat_summary(fun.y = mean, geom = "line", size = 1.1, aes(color=paste("mean", sex))) +
-  ggtitle("Figure 3: Packs a Day across Age") +
-  scale_colour_hue(name = "Sex") +
-  ggtitle("Figure 4: Packs a Day across Age and by Sex")
+  ggtitle("Figure 5: Packs a Day across Age and Sex") +
+  scale_colour_hue(name = "Sex") 
 ```
 
 
@@ -69,19 +80,19 @@ smoke %>%
   ggplot(aes(sysbp, cursmoke)) +
   geom_jitter(height = 0.1) +
   geom_smooth(color = 'red') +
-  ggtitle("Figure 5: Current Smoking Status across Systolic Blood Pressure")
+  ggtitle("Figure 6: Current Smoking Status across Systolic Blood Pressure")
 
 smoke %>%
   ggplot(aes(diabp, cursmoke)) +
   geom_jitter(height = 0.1) +
   geom_smooth(color = 'red') +
-  ggtitle("Figure 6: Current Smoking Status across Diastolic Blood Pressure")
+  ggtitle("Figure 7: Current Smoking Status across Diastolic Blood Pressure")
 
 smoke %>%
   ggplot(aes(diabp, cursmoke)) +
   geom_jitter(height = 0.1) +
   geom_smooth(color = 'red') +
-  ggtitle("Figure 7: Current Smoking Status across Serum Total Cholestserol")
+  ggtitle("Figure 8: Current Smoking Status across Serum Total Cholestserol")
 ```
 
 #Corrplot 1
