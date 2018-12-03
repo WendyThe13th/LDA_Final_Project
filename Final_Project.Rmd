@@ -21,13 +21,100 @@ smoke <- read.csv(file = 'frmgham2.csv') %>%
 ```
 
 
+Figure 1 shows that as individuals age, the likelihood that they are smoking decreases. We can see that when we breaking individuals down by sex, it appears that the overall trend is the same between sexes with males having an overall higher likelihood of being smokers as age increases. 
+
 ```{r}
 
-corr =  smoke %>% 
-  dplyr::select(totchol, age, sysbp, diabp, bmi, sex, heartrte, cursmoke, cigpday, glucose) %>%
-    mutate(totchol = as.numeric(totchol),
-         bmi = as.numeric(bmi)) %>%
-  na.omit()
-corrplot(cor(corr), method="number",shade.col=NA, tl.col="black", tl.srt=65)
+smoke %>%
+  ggplot(aes(age, cursmoke)) +
+  geom_jitter(height = 0.1) +
+  stat_summary(fun.y = mean, geom = "line", col = 'red') +
+  ggtitle("Figure 1: Current Smoking Status across Age")
+
+
+smoke %>%
+  ggplot(aes(age, cursmoke, group = sex)) +
+  geom_jitter(height = 0.1) +
+  stat_summary(fun.y = mean, geom = "line", aes(color=paste("mean", sex))) +
+  ggtitle("Figure 2: Current Smoking Status across Age and by Sex") +
+  scale_colour_hue(name = "Sex") 
 
 ```
+
+When looking at cigarette packs smoked per day, it appears that the number steadily decreases as individuals get older. The trend once again is the same in each sex however females are smoking less packs a day overall.
+
+```{r}
+
+smoke %>%
+  ggplot(aes(age, cigpday)) +
+  geom_point() +
+  stat_summary(fun.y = mean, geom = "line", size = 1.1, col = 'red') +
+  ggtitle("Figure 3: Packs a Day across Age")
+
+smoke %>%
+  ggplot(aes(age, cigpday, group = sex)) +
+  geom_point() +
+  stat_summary(fun.y = mean, geom = "line", size = 1.1, aes(color=paste("mean", sex))) +
+  ggtitle("Figure 3: Packs a Day across Age") +
+  scale_colour_hue(name = "Sex") +
+  ggtitle("Figure 4: Packs a Day across Age and by Sex")
+```
+
+
+In Figure 5, we see that as systolic blood pressure increases the likelihood of smoking decreases. The trend is not as profound in Figure 6 with diastolic BP or with serum total cholesterol in Figure 7. 
+
+```{r}
+
+smoke %>%
+  ggplot(aes(sysbp, cursmoke)) +
+  geom_jitter(height = 0.1) +
+  geom_smooth(color = 'red') +
+  ggtitle("Figure 5: Current Smoking Status across Systolic Blood Pressure")
+
+smoke %>%
+  ggplot(aes(diabp, cursmoke)) +
+  geom_jitter(height = 0.1) +
+  geom_smooth(color = 'red') +
+  ggtitle("Figure 6: Current Smoking Status across Diastolic Blood Pressure")
+
+smoke %>%
+  ggplot(aes(diabp, cursmoke)) +
+  geom_jitter(height = 0.1) +
+  geom_smooth(color = 'red') +
+  ggtitle("Figure 7: Current Smoking Status across Serum Total Cholestserol")
+```
+
+#Corrplot 1
+It appears that the only significant correlation between the variables of interest is between the two BP measurements and systolic BP and age with a value of 0.39. There is negative correlation between age and smoking status, meaning that the smokers appear to be correlated with youger aged individuals.  
+
+#Corrplot 2
+Obvious correlations include BP measurements between bpmeds and prevhyp, age and death, glucose and diabetes, etc. Prevvap was correlated with prevmi and prevchd. Our variable of interest totchol was very highly correlated with ldlc. 
+
+#Corrplot3 
+When evaluating the different follow up conditions, most are highly correlated with each other with the exception of hypertension not being correlated with any other condition and stroke only being correlated to cvd at 0.55. 
+
+```{r}
+
+#correlation between all interested variables
+corr =  smoke %>% 
+  dplyr::select(age, cursmoke, sex, sysbp, diabp, totchol) %>%  
+  mutate(totchol = as.numeric(totchol)) %>%
+  na.omit()
+
+corrplot(cor(corr), method="number",shade.col=NA, tl.col="black", tl.srt=65)
+
+
+corr2 =  smoke %>% 
+  dplyr::select(-randid, -period,  -25:-39) %>%  
+  na.omit()
+
+corrplot(cor(corr2), method="number",shade.col=NA, tl.col="black", tl.srt=65)
+
+
+corr3 =  smoke %>% 
+  dplyr::select(25:31) %>%  
+  na.omit()
+
+corrplot(cor(corr3), method="number",shade.col=NA, tl.col="black", tl.srt=65)
+```
+
