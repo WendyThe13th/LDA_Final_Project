@@ -102,7 +102,7 @@ It appears that the only significant correlation between the variables of intere
 Obvious correlations include BP measurements between bpmeds and prevhyp, age and death, glucose and diabetes, etc. Prevvap was correlated with prevmi and prevchd. Our variable of interest totchol was very highly correlated with ldlc. 
 
 #Corrplot3 
-When evaluating the different follow up conditions, most are highly correlated with each other with the exception of hypertension not being correlated with any other condition and stroke only being correlated to cvd at 0.55. 
+When evaluating the different follow up conditions, most are highly correlated with each other with the exception of hypertension not being correlated with any other condition and stroke only being correlated to cvd at 0.55. BPs are correlated with hypertension
 
 ```{r}
 
