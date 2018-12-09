@@ -135,6 +135,7 @@ corrplot(cor(corr3), method="number",shade.col=NA, tl.col="black", tl.srt=65)
 #checking missing values (5% rule)
 pMiss <- function(x){sum(is.na(x))/length(x)*100}
 apply(smoke,2,pMiss) #2 indicates columns
+#Remove hdlc, ldlc, glucose, and bpmeds for having more than 5% of missing values.
 
 #imputation
 library(mice)
@@ -145,7 +146,7 @@ smoke2 = smoke %>%
 
 #imputation using predictive mean matching
 imputed.smoke <- mice(smoke2,m=5,maxit=50,meth='pmm',seed=500)
-summary(imputed.smoke)
+#summary(imputed.smoke)
 
 #return to completed dataset
 completedData <- complete(imputed.smoke,1)
