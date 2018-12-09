@@ -129,3 +129,26 @@ corr3 =  smoke %>%
 corrplot(cor(corr3), method="number",shade.col=NA, tl.col="black", tl.srt=65)
 ```
 
+
+
+```{r}
+#checking missing values (5% rule)
+pMiss <- function(x){sum(is.na(x))/length(x)*100}
+apply(smoke,2,pMiss) #2 indicates columns
+
+#imputation
+library(mice)
+
+#Vars with missing values for imputation
+smoke2 = smoke %>% 
+  dplyr::select(c(totchol,cigpday,bmi,heartrte,educ))
+
+#imputation using predictive mean matching
+imputed.smoke <- mice(smoke2,m=5,maxit=50,meth='pmm',seed=500)
+summary(imputed.smoke)
+
+#return to completed dataset
+completedData <- complete(imputed.smoke,1)
+summary(completedData)
+```
+
