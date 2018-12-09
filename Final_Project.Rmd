@@ -32,12 +32,13 @@ smoke %>%
   ggtitle("Figure 1: Current Smoking Status across Age")
 
 
+##FIGURE OF INTEREST
 smoke %>%
   ggplot(aes(age, cursmoke, group = sex)) +
-  geom_jitter(height = 0.1) +
+  geom_jitter(height = 0.1, size = 0.5) +
   stat_summary(fun.y = mean, geom = "line", aes(color=paste("mean", sex))) +
-  ggtitle("Figure 2: Current Smoking Status across Age and by Sex") +
-  scale_colour_hue(name = "Sex") 
+  ggtitle("Figure 2: Current Smoking Status across Age") +
+  scale_colour_hue(name = "Sex", labels = c("Male", "Female"))
 
 
 #longitudinal plot
@@ -65,10 +66,10 @@ smoke %>%
 
 smoke %>%
   ggplot(aes(age, cigpday, group = sex)) +
-  geom_point() +
+  geom_point(size = 0.75) +
   stat_summary(fun.y = mean, geom = "line", size = 1.1, aes(color=paste("mean", sex))) +
-  ggtitle("Figure 5: Packs a Day across Age and Sex") +
-  scale_colour_hue(name = "Sex") 
+  ggtitle("Figure 5: Cigarettes per Day across Age") +
+  scale_colour_hue(name = "Sex", labels = c("Male", "Female")) 
 ```
 
 
