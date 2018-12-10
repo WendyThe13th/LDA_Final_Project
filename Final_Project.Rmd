@@ -146,6 +146,7 @@ Variable Selection and confounder identidication:
 
 ```{r}
 smoke.vs = smoke %>% 
+  filter(period==1) %>% 
   dplyr::select(c(randid,sex,age,cursmoke,totchol,bmi,heartrte,educ,diabp,sysbp,diabetes,heartrte)) %>% 
   mutate(cursmoke = as.factor(cursmoke)) %>% 
   na.omit()
@@ -153,7 +154,7 @@ smoke.vs = smoke %>%
 #(1)
 ###backward elimination###
 
-back.fit <- glm(cursmoke ~ .-randid, data=smoke.vs,family = binomial)
+back.fit <- glm(cursmoke ~ .-randid, data=smoke.vs,family = 'binomial')
 summary(back.fit)
 #We then take out the variables with the highest p-value:
 
@@ -166,21 +167,15 @@ summary(step2)
 #result from backward elimination:
 #cursmoke ~ age + sex + totchol + bmi + educ + diabp + heartrte
 
-###stepwise regression###
+#only backward elimination is recommeded in case of binary outcome
 
-step.fit = glm(cursmoke~.-randid, data = smoke.step,family = binomial)
-step(step.fit, direction='backward')
-
-#result from stepwise:
-#cursmoke ~ sex + age + totchol + bmi + heartrte + educ + diabp for having the lowest AIC
-
-#Stewise regression and backward elimination result in the same model.
 ```
 
 If we change the outcome from cursmoke to cigpday:
 ```{r}
 #(2)
 smoke.vs2 = smoke %>% 
+  filter(period==1) %>%
   dplyr::select(c(randid,sex,age,cigpday,totchol,bmi,heartrte,educ,diabp,sysbp,diabetes,heartrte)) %>% 
   na.omit()
 
@@ -188,17 +183,15 @@ smoke.vs2 = smoke %>%
 
 back.fit2 <- lm(cigpday ~ .-randid, data=smoke.vs2)
 summary(back.fit2)
-#all p-values are significant 
 
+step1 <-update(back.fit2, . ~ . -sysbp)
+summary(step1)
+
+step2 <-update(step1, . ~ . -diabetes)
+summary(step2)
 #result from backward elimination:
 #full model
-
-###stepwise regression###
-step.fit2 = lm(cigpday~.-randid, data = smoke.vs2)
-step(step.fit2, direction='backward')
-
-#result from stepwise:
-#full model
+#cursmoke ~ age + sex + totchol + bmi + educ + diabp + heartrte
 ```
 
 
