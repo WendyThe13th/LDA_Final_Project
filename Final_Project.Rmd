@@ -13,6 +13,8 @@ library(lme4)
 library(janitor)
 library(corrplot)
 library(ggplot2)
+library(broom)
+library(mice)
 ```
 
 ```{r}
@@ -136,20 +138,82 @@ corrplot(cor(corr3), method="number",shade.col=NA, tl.col="black", tl.srt=65)
 pMiss <- function(x){sum(is.na(x))/length(x)*100}
 apply(smoke,2,pMiss) #2 indicates columns
 #Remove hdlc, ldlc, glucose, and bpmeds for having more than 5% of missing values.
+```
 
-#imputation
-library(mice)
 
+Variable Selection and confounder identidication:
+
+```{r}
+smoke.vs = smoke %>% 
+  dplyr::select(c(randid,sex,age,cursmoke,totchol,bmi,heartrte,educ,diabp,sysbp,diabetes,heartrte)) %>% 
+  mutate(cursmoke = as.factor(cursmoke)) %>% 
+  na.omit()
+
+#(1)
+###backward elimination###
+
+back.fit <- glm(cursmoke ~ .-randid, data=smoke.vs,family = binomial)
+summary(back.fit)
+#We then take out the variables with the highest p-value:
+
+step1 <-update(back.fit, . ~ . -sysbp)
+summary(step1)
+
+step2 <-update(step1, . ~ . -diabetes)
+summary(step2)
+
+#result from backward elimination:
+#cursmoke ~ age + sex + totchol + bmi + educ + diabp + heartrte
+
+###stepwise regression###
+
+step.fit = glm(cursmoke~.-randid, data = smoke.step,family = binomial)
+step(step.fit, direction='backward')
+
+#result from stepwise:
+#cursmoke ~ sex + age + totchol + bmi + heartrte + educ + diabp for having the lowest AIC
+
+#Stewise regression and backward elimination result in the same model.
+```
+
+If we change the outcome from cursmoke to cigpday:
+```{r}
+#(2)
+smoke.vs2 = smoke %>% 
+  dplyr::select(c(randid,sex,age,cigpday,totchol,bmi,heartrte,educ,diabp,sysbp,diabetes,heartrte)) %>% 
+  na.omit()
+
+###backward elimination###
+
+back.fit2 <- lm(cigpday ~ .-randid, data=smoke.vs2)
+summary(back.fit2)
+#all p-values are significant 
+
+#result from backward elimination:
+#full model
+
+###stepwise regression###
+step.fit2 = lm(cigpday~.-randid, data = smoke.vs2)
+step(step.fit2, direction='backward')
+
+#result from stepwise:
+#full model
+```
+
+
+```{r}
 #Vars with missing values for imputation
 smoke2 = smoke %>% 
-  dplyr::select(c(totchol,cigpday,bmi,heartrte,educ))
-
+  dplyr::select(c(cursmoke,bmi,educ,diabp,age,sex,heartrte,totchol,cigpday))
+summary(smoke2)
 #imputation using predictive mean matching
 imputed.smoke <- mice(smoke2,m=5,maxit=50,meth='pmm',seed=500)
 #summary(imputed.smoke)
 
 #return to completed dataset
 completedData <- complete(imputed.smoke,1)
+completedData$randid = smoke$randid
 summary(completedData)
 ```
+
 
