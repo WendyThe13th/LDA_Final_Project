@@ -144,6 +144,8 @@ apply(smoke,2,pMiss) #2 indicates columns
 
 Variable Selection and confounder identidication:
 
+
+
 ```{r}
 smoke.vs = smoke %>% 
   filter(period==1) %>% 
@@ -170,6 +172,47 @@ summary(step2)
 #only backward elimination is recommeded in case of binary outcome
 
 ```
+Residual plots for finding confounders between cursmoke and age
+```{r}
+#cursmoke vs age
+smoke %>%
+  ggplot(aes(x = age, y = cursmoke))+
+  geom_jitter(height = 0.1) +
+  geom_point(size=0.1) +
+  geom_smooth(method = 'loess') +
+ggtitle('cursmoke vs age, Scatterplot')+ 
+  theme( plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+#adjust sex
+cursmoke_adj_sex <- lm(cursmoke~sex, data = smoke)$residuals
+age_adj_sex <- lm(age~sex, data = smoke)$residuals
+adj_res_sex <- tibble(id=smoke$randid, cursmoke_adj_sex=cursmoke_adj_sex, age_adj_sex=age_adj_sex)
+
+adj_res_sex %>%
+ggplot(aes(x=age_adj_sex, y=cursmoke_adj_sex))+
+geom_point(size=0.75) +
+geom_smooth(method = 'loess') +
+ggtitle("cursmoke vs age, sex adjusted")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+```{r}
+#adjust totchol
+cursmoke_adj_totchol <- lm(cursmoke~totchol, data = smoke)$residuals
+age_adj_totchol <- lm(age~totchol, data = smoke)$residuals
+adj_res_totchol <- tibble(id=smoke$randid, cursmoke_adj_totchol=cursmoke_adj_totchol, age_adj_totchol=age_adj_totchol)
+
+adj_res_totchol %>%
+ggplot(aes(x=age_adj_totchol, y=cursmoke_adj_totchol))+
+geom_point(size=0.75) +
+geom_smooth(method = 'loess') +
+ggtitle("cursmoke vs age, totchol adjusted")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+length(age_adj_totchol)
+length(smoke$randid)
+```
 
 If we change the outcome from cursmoke to cigpday:
 ```{r}
@@ -193,6 +236,9 @@ summary(step2)
 #full model
 #cursmoke ~ age + sex + totchol + bmi + educ + diabp + heartrte
 ```
+
+
+
 
 
 ```{r}
