@@ -28,7 +28,7 @@ Figure 1 shows that as individuals age, the likelihood that they are smoking dec
 ```{r}
 
 smoke %>%
-  ggplot(aes(age, cursmoke)) +
+  ggplot(aes(age, cigpday)) +
   geom_jitter(height = 0.1) +
   stat_summary(fun.y = mean, geom = "line", col = 'red') +
   ggtitle("Figure 1: Current Smoking Status across Age")
@@ -140,12 +140,150 @@ pMiss <- function(x){sum(is.na(x))/length(x)*100}
 apply(smoke,2,pMiss) #2 indicates columns
 #Remove hdlc, ldlc, glucose, and bpmeds for having more than 5% of missing values.
 ```
-
+It is okay as hdlc, ldlc are highly correlated with totchol, glucose is highy correlated with diabetes, bmmeds is highly correlated with sysbp and diabp. Therefore it won't lose much information to just drop these features.
+```{r}
+smoke_na_omit = smoke %>%
+  select(-hdlc,-ldlc,-glucose,-bpmeds) %>%
+  na.omit()
+```
 
 Variable Selection and confounder identidication:
+# Question 1
+Residual plots for finding confounders between cursmoke and age
+```{r}
+#cursmoke vs age
+smoke_na_omit %>%
+  ggplot(aes(x = age, y = cursmoke))+
+  geom_jitter(height = 0.1) +
+  geom_point(size=0.1) +
+  geom_smooth(method = 'loess') +
+ggtitle('cursmoke vs age, Scatterplot')+ 
+  theme( plot.title = element_text(hjust = 0.5))
+```
 
+```{r}
+#adjust sex
+cursmoke_adj_sex <- glm(cursmoke~sex, data = smoke_na_omit,family='binomial')$residuals
+age_adj_sex <- lm(age~sex, data = smoke_na_omit)$residuals
+adj_res_sex <- tibble(id=smoke_na_omit$randid, cursmoke_adj_sex=cursmoke_adj_sex, age_adj_sex=age_adj_sex)
 
+adj_res_sex %>%
+ggplot(aes(x=age_adj_sex, y=cursmoke_adj_sex))+
+geom_point(size=0.75)  +
+geom_smooth(method = 'loess') +
+  
+ggtitle("cursmoke vs age, sex adjusted")+ 
+  theme(plot.title = element_text(hjust = 0.5))
 
+```
+
+```{r}
+#adjust totchol
+
+cursmoke_adj_totchol <- glm(cursmoke~totchol, data = smoke_na_omit,family = "binomial")$residuals
+age_adj_totchol <- lm(age~totchol, data = smoke_na_omit)$residuals
+adj_res_totchol <- tibble(id=smoke_na_omit$randid, cursmoke_adj_totchol=cursmoke_adj_totchol, age_adj_totchol=age_adj_totchol)
+
+adj_res_totchol %>%
+ggplot(aes(x=age_adj_totchol, y=cursmoke_adj_totchol))+
+geom_point(size=0.75) +
+geom_smooth(method = 'loess') +
+ggtitle("cursmoke vs age, totchol adjusted")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+#adjust sysbp
+cursmoke_adj_sysbp <- glm(cursmoke~sysbp, data = smoke_na_omit,family = "binomial")$residuals
+age_adj_sysbp <- lm(age~sysbp, data = smoke_na_omit)$residuals
+adj_res_sysbp <- tibble(id=smoke_na_omit$randid, cursmoke_adj_sysbp=cursmoke_adj_sysbp, age_adj_sysbp=age_adj_sysbp)
+
+adj_res_sysbp %>%
+ggplot(aes(x=age_adj_sysbp, y=cursmoke_adj_sysbp))+
+geom_point(size=0.75) +
+geom_smooth(method = 'loess') +
+ggtitle("cursmoke vs age, sysbp adjusted")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+#adjust diabp
+cursmoke_adj_diabp <- glm(cursmoke~diabp, data = smoke_na_omit,family = "binomial")$residuals
+age_adj_diabp <- lm(age~diabp, data = smoke_na_omit)$residuals
+adj_res_diabp <- tibble(id=smoke_na_omit$randid, cursmoke_adj_diabp=cursmoke_adj_diabp, age_adj_sysbp=age_adj_diabp)
+
+adj_res_diabp %>%
+ggplot(aes(x=age_adj_diabp, y=cursmoke_adj_diabp))+
+geom_point(size=0.75) +
+geom_smooth(method = 'loess') +
+ggtitle("cursmoke vs age, diabp adjusted")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+#adjust bmi
+cursmoke_adj_bmi <- glm(cursmoke~bmi, data = smoke_na_omit,family = "binomial")$residuals
+age_adj_bmi <- lm(age~bmi, data = smoke_na_omit)$residuals
+adj_res_bmi <- tibble(id=smoke_na_omit$randid, cursmoke_adj_bmi=cursmoke_adj_bmi, age_adj_bmi=age_adj_bmi)
+
+adj_res_bmi %>%
+ggplot(aes(x=age_adj_bmi, y=cursmoke_adj_bmi))+
+geom_point(size=0.75) +
+geom_smooth(method = 'loess') +
+ggtitle("cursmoke vs age, bmi adjusted")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+#adjust heartrte
+cursmoke_adj_heartrte <- glm(cursmoke~heartrte, data = smoke_na_omit,family = "binomial")$residuals
+age_adj_heartrte <- lm(age~heartrte, data = smoke_na_omit)$residuals
+adj_res_heartrte <- tibble(id=smoke_na_omit$randid, cursmoke_adj_heartrte=cursmoke_adj_heartrte, age_adj_heartrte=age_adj_heartrte)
+
+adj_res_heartrte %>%
+ggplot(aes(x=age_adj_heartrte, y=cursmoke_adj_heartrte))+
+geom_point(size=0.75) +
+geom_smooth(method = 'loess') +
+ggtitle("cursmoke vs age, heartrte adjusted")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+#adjust educ
+cursmoke_adj_educ <- glm(cursmoke~educ, data = smoke_na_omit,family = "binomial")$residuals
+age_adj_educ <- lm(age~educ, data = smoke_na_omit)$residuals
+adj_res_educ <- tibble(id=smoke_na_omit$randid, cursmoke_adj_educ=cursmoke_adj_educ, age_adj_educ=age_adj_educ)
+
+adj_res_educ %>%
+ggplot(aes(x=age_adj_educ, y=cursmoke_adj_educ))+
+geom_point(size=0.75) +
+geom_smooth(method = 'loess') +
+ggtitle("cursmoke vs age, educ adjusted")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+#adjust diabetes
+cursmoke_adj_diabetes <- glm(cursmoke~diabetes, data = smoke_na_omit,family = "binomial")$residuals
+age_adj_diabetes <- lm(age~diabetes, data = smoke_na_omit)$residuals
+adj_res_diabetes <- tibble(id=smoke_na_omit$randid, cursmoke_adj_diabetes=cursmoke_adj_diabetes, age_adj_diabetes=age_adj_diabetes)
+
+adj_res_diabetes %>%
+ggplot(aes(x=age_adj_diabetes, y=cursmoke_adj_diabetes))+
+geom_point(size=0.75) +
+geom_smooth(method = 'loess') +
+ggtitle("cursmoke vs age, diabetes adjusted")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+Using backward:
 ```{r}
 smoke.vs = smoke %>% 
   filter(period==1) %>% 
@@ -172,49 +310,148 @@ summary(step2)
 #only backward elimination is recommeded in case of binary outcome
 
 ```
-Residual plots for finding confounders between cursmoke and age
+
+
+
+#Question 2
+
+
+Variable Selection and confounder identidication:
+
+Residual plots for finding confounders between number of cigarettes smoked per day and age
 ```{r}
-#cursmoke vs age
-smoke %>%
-  ggplot(aes(x = age, y = cursmoke))+
+#cigpday vs age
+smoke_na_omit %>%
+  ggplot(aes(x = age, y = cigpday))+
   geom_jitter(height = 0.1) +
   geom_point(size=0.1) +
   geom_smooth(method = 'loess') +
-ggtitle('cursmoke vs age, Scatterplot')+ 
+ggtitle('cigpday vs age, Scatterplot')+ 
   theme( plot.title = element_text(hjust = 0.5))
 ```
 
 ```{r}
 #adjust sex
-cursmoke_adj_sex <- lm(cursmoke~sex, data = smoke)$residuals
-age_adj_sex <- lm(age~sex, data = smoke)$residuals
-adj_res_sex <- tibble(id=smoke$randid, cursmoke_adj_sex=cursmoke_adj_sex, age_adj_sex=age_adj_sex)
+cigpday_adj_sex <- lm(cigpday~sex, data = smoke_na_omit)$residuals
+age_adj_sex <- lm(age~sex, data = smoke_na_omit)$residuals
+adj_res_sex <- tibble(id=smoke_na_omit$randid, cigpday_adj_sex=cigpday_adj_sex, age_adj_sex=age_adj_sex)
 
 adj_res_sex %>%
-ggplot(aes(x=age_adj_sex, y=cursmoke_adj_sex))+
+ggplot(aes(x=age_adj_sex, y=cigpday_adj_sex))+
 geom_point(size=0.75) +
 geom_smooth(method = 'loess') +
-ggtitle("cursmoke vs age, sex adjusted")+ 
+ggtitle("cigpday vs age, sex adjusted")+ 
   theme(plot.title = element_text(hjust = 0.5))
 
 ```
+
 ```{r}
 #adjust totchol
-cursmoke_adj_totchol <- lm(cursmoke~totchol, data = smoke)$residuals
-age_adj_totchol <- lm(age~totchol, data = smoke)$residuals
-adj_res_totchol <- tibble(id=smoke$randid, cursmoke_adj_totchol=cursmoke_adj_totchol, age_adj_totchol=age_adj_totchol)
+
+cigpday_adj_totchol <- lm(cigpday~totchol, data = smoke_na_omit)$residuals
+age_adj_totchol <- lm(age~totchol, data = smoke_na_omit)$residuals
+adj_res_totchol <- tibble(id=smoke_na_omit$randid, cigpday_adj_totchol=cigpday_adj_totchol, age_adj_totchol=age_adj_totchol)
 
 adj_res_totchol %>%
-ggplot(aes(x=age_adj_totchol, y=cursmoke_adj_totchol))+
+ggplot(aes(x=age_adj_totchol, y=cigpday_adj_totchol))+
 geom_point(size=0.75) +
 geom_smooth(method = 'loess') +
-ggtitle("cursmoke vs age, totchol adjusted")+ 
+ggtitle("cigpday vs age, totchol adjusted")+ 
   theme(plot.title = element_text(hjust = 0.5))
-length(age_adj_totchol)
-length(smoke$randid)
+
 ```
 
-If we change the outcome from cursmoke to cigpday:
+```{r}
+#adjust sysbp
+cigpday_adj_sysbp <- lm(cigpday~sysbp, data = smoke_na_omit)$residuals
+age_adj_sysbp <- lm(age~sysbp, data = smoke_na_omit)$residuals
+adj_res_sysbp <- tibble(id=smoke_na_omit$randid, cigpday_adj_sysbp=cigpday_adj_sysbp, age_adj_sysbp=age_adj_sysbp)
+
+adj_res_sysbp %>%
+ggplot(aes(x=age_adj_sysbp, y=cigpday_adj_sysbp))+
+geom_point(size=0.75) +
+geom_smooth(method = 'loess') +
+ggtitle("cigpday vs age, sysbp adjusted")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+#adjust diabp
+cigpday_adj_diabp <- lm(cigpday~diabp, data = smoke_na_omit)$residuals
+age_adj_diabp <- lm(age~diabp, data = smoke_na_omit)$residuals
+adj_res_diabp <- tibble(id=smoke_na_omit$randid, cigpday_adj_diabp=cigpday_adj_diabp, age_adj_sysbp=age_adj_diabp)
+
+adj_res_diabp %>%
+ggplot(aes(x=age_adj_diabp, y=cigpday_adj_diabp))+
+geom_point(size=0.75) +
+geom_smooth(method = 'loess') +
+ggtitle("cigpday vs age, diabp adjusted")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+#adjust bmi
+cigpday_adj_bmi <- lm(cigpday~bmi, data = smoke_na_omit)$residuals
+age_adj_bmi <- lm(age~bmi, data = smoke_na_omit)$residuals
+adj_res_bmi <- tibble(id=smoke_na_omit$randid, cigpday_adj_bmi=cigpday_adj_bmi, age_adj_bmi=age_adj_bmi)
+
+adj_res_bmi %>%
+ggplot(aes(x=age_adj_bmi, y=cigpday_adj_bmi))+
+geom_point(size=0.75) +
+geom_smooth(method = 'loess') +
+ggtitle("cigpday vs age, bmi adjusted")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+#adjust heartrte
+cigpday_adj_heartrte <- lm(cigpday~heartrte, data = smoke_na_omit)$residuals
+age_adj_heartrte <- lm(age~heartrte, data = smoke_na_omit)$residuals
+adj_res_heartrte <- tibble(id=smoke_na_omit$randid, cigpday_adj_heartrte=cigpday_adj_heartrte, age_adj_heartrte=age_adj_heartrte)
+
+adj_res_heartrte %>%
+ggplot(aes(x=age_adj_heartrte, y=cigpday_adj_heartrte))+
+geom_point(size=0.75) +
+geom_smooth(method = 'loess') +
+ggtitle("cigpday vs age, heartrte adjusted")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+#adjust educ
+cigpday_adj_educ <- lm(cigpday~educ, data = smoke_na_omit)$residuals
+age_adj_educ <- lm(age~educ, data = smoke_na_omit)$residuals
+adj_res_educ <- tibble(id=smoke_na_omit$randid, cigpday_adj_educ=cigpday_adj_educ, age_adj_educ=age_adj_educ)
+
+adj_res_educ %>%
+ggplot(aes(x=age_adj_educ, y=cigpday_adj_educ))+
+geom_point(size=0.75) +
+geom_smooth(method = 'loess') +
+ggtitle("cigpday vs age, educ adjusted")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+#adjust diabetes
+cigpday_adj_diabetes <- lm(cigpday~diabetes, data = smoke_na_omit)$residuals
+age_adj_diabetes <- lm(age~diabetes, data = smoke_na_omit)$residuals
+adj_res_diabetes <- tibble(id=smoke_na_omit$randid, cigpday_adj_diabetes=cigpday_adj_diabetes, age_adj_diabetes=age_adj_diabetes)
+
+adj_res_diabetes %>%
+ggplot(aes(x=age_adj_diabetes, y=cigpday_adj_diabetes))+
+geom_point(size=0.75) +
+geom_smooth(method = 'loess') +
+ggtitle("cigpday vs age, diabetes adjusted")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+
 ```{r}
 #(2)
 smoke.vs2 = smoke %>% 
@@ -237,7 +474,11 @@ summary(step2)
 #cursmoke ~ age + sex + totchol + bmi + educ + diabp + heartrte
 ```
 
+#Question 3
 
+#Question 4
+
+#QUestion 5
 
 
 
