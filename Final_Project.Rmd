@@ -283,7 +283,7 @@ ggtitle("cursmoke vs age, diabetes adjusted")+
 
 ```
 
-Using backward:
+Using backward elimination:
 ```{r}
 smoke.vs = smoke %>% 
   filter(period==1) %>% 
@@ -476,16 +476,66 @@ summary(step2)
 
 #Question 3
 
+```{r}
+#Backward elimination for cursmoke vs. systolic blood pressure
+
+back.fit3 <- lm(sysbp ~ .-randid, data=smoke.vs)
+summary(back.fit3)
+#We then take out the variables with the highest p-value:
+
+step1 <-update(back.fit3, . ~ . -totchol)
+summary(step1)
+
+#Although "cursmoke" is insignificant here, we will not remove it since it is our main variable of interest.
+
+step2 <-update(step1, . ~ . -bmi)
+summary(step2)
+
+#result from backward elimination:
+#sysbp ~ age + sex + cursmoke_1 + educ + diabp + heartrte + diabetes
+
+```
+
+
 #Question 4
+
+```{r}
+#Backward elimination for cursmoke vs. diastolic blood pressure
+
+back.fit4 <- lm(diabp ~ .-randid, data=smoke.vs)
+summary(back.fit4)
+
+# All variables are significant. 
+
+#result from backward elimination:
+#diabp ~ age + sex + cursmoke_1 + educ + diabp + heartrte + diabetes + bmi + totchol
+
+```
+
 
 #QUestion 5
 
+```{r}
+#Backward elimination for cursmoke vs. serum total cholesterol
 
+back.fit5 <- lm(totchol ~ .-randid, data=smoke.vs)
+summary(back.fit5)
+
+step1 <-update(back.fit5, . ~ . -diabetes)
+summary(step1)
+
+step2 <-update(step1, . ~ . -sysbp)
+summary(step2)
+
+#result from backward elimination:
+#totchol ~ age + sex + cursmoke_1 + educ + diabp + heartrte + bmi
+
+```
 
 ```{r}
 #Vars with missing values for imputation
 smoke2 = smoke %>% 
-  dplyr::select(c(cursmoke,bmi,educ,diabp,age,sex,heartrte,totchol,cigpday))
+  dplyr::select(c(cursmoke,bmi,educ,diabp,age,sex,heartrte,totchol,cigpday,diabetes,sysbp))
 summary(smoke2)
 #imputation using predictive mean matching
 imputed.smoke <- mice(smoke2,m=5,maxit=50,meth='pmm',seed=500)
