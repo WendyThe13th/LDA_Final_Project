@@ -471,7 +471,7 @@ step2 <-update(step1, . ~ . -diabetes)
 summary(step2)
 #result from backward elimination:
 #full model
-#cursmoke ~ age + sex + totchol + bmi + educ + diabp + heartrte
+#cigpday ~ age + sex + totchol + bmi + educ + diabp + heartrte
 ```
 
 #Question 3
