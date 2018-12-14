@@ -62,14 +62,16 @@ When looking at cigarette packs smoked per day, it appears that the number stead
 
 smoke %>%
   ggplot(aes(age, cigpday)) +
-  geom_point() +
-  stat_summary(fun.y = mean, geom = "line", size = 1.1, col = 'red') +
+  
+  stat_summary(fun.y = mean, geom = "line", size = 0.8, col = 'red') +
   ggtitle("Figure 4: Packs a Day across Age")
 
 smoke %>%
+  
   ggplot(aes(age, cigpday, group = sex)) +
-  geom_point(size = 0.75) +
-  stat_summary(fun.y = mean, geom = "line", size = 1.1, aes(color=paste("mean", sex))) +
+  
+  stat_summary(fun.y = mean, geom = "line", size = 0.8, aes(color=paste("mean", sex))) +
+  geom_smooth(se=FALSE) +
   ggtitle("Figure 5: Cigarettes per Day across Age") +
   scale_colour_hue(name = "Sex", labels = c("Male", "Female")) 
 ```
@@ -149,152 +151,166 @@ smoke_na_omit = smoke %>%
 
 Variable Selection and confounder identidication:
 # Question 1
-Residual plots for finding confounders between cursmoke and age
-```{r}
-#cursmoke vs age
-smoke_na_omit %>%
-  ggplot(aes(x = age, y = cursmoke))+
-  geom_jitter(height = 0.1) +
-  geom_point(size=0.1) +
-  geom_smooth(method = 'loess') +
-ggtitle('cursmoke vs age, Scatterplot')+ 
-  theme( plot.title = element_text(hjust = 0.5))
-```
 
 ```{r}
-#adjust sex
-cursmoke_adj_sex <- glm(cursmoke~sex, data = smoke_na_omit,family='binomial')$residuals
-age_adj_sex <- lm(age~sex, data = smoke_na_omit)$residuals
-adj_res_sex <- tibble(id=smoke_na_omit$randid, cursmoke_adj_sex=cursmoke_adj_sex, age_adj_sex=age_adj_sex)
-
-adj_res_sex %>%
-ggplot(aes(x=age_adj_sex, y=cursmoke_adj_sex))+
-geom_point(size=0.75)  +
-geom_smooth(method = 'loess') +
-  
-ggtitle("cursmoke vs age, sex adjusted")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-
+smoke_vs1 = smoke %>% 
+  filter(period==1) %>% 
+  dplyr::select(c(randid,sex,age,cursmoke,totchol,bmi,heartrte,educ,diabp,sysbp,diabetes)) %>% 
+  mutate(cursmoke = as.factor(cursmoke), sex=as.factor(sex), diabetes=as.factor(diabetes)) %>% 
+  na.omit()
 ```
+
 
 ```{r}
-#adjust totchol
-
-cursmoke_adj_totchol <- glm(cursmoke~totchol, data = smoke_na_omit,family = "binomial")$residuals
-age_adj_totchol <- lm(age~totchol, data = smoke_na_omit)$residuals
-adj_res_totchol <- tibble(id=smoke_na_omit$randid, cursmoke_adj_totchol=cursmoke_adj_totchol, age_adj_totchol=age_adj_totchol)
-
-adj_res_totchol %>%
-ggplot(aes(x=age_adj_totchol, y=cursmoke_adj_totchol))+
-geom_point(size=0.75) +
-geom_smooth(method = 'loess') +
-ggtitle("cursmoke vs age, totchol adjusted")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+totchol, data=smoke_vs1,family = 'binomial')
+a=(summary(glm1)$coefficients[2])-(1.96 * (summary(glm1)$coefficients[5])) 
+b= (summary(glm1)$coefficients[2])+(1.96 * (summary(glm1)$coefficients[5]))
+c=summary(glm2)$coefficients[2]
+exp(a)
+exp(b)
+exp(c)
+!(exp(c)>=exp(a) & exp(c)<=exp(b))
+d=(summary(glm1)$coefficients[3])-(1.96 * (summary(glm1)$coefficients[6]))
+e=(summary(glm1)$coefficients[3])+(1.96 * (summary(glm1)$coefficients[6]))
+f=summary(glm2)$coefficients[3]
+exp(d)
+exp(e)
+exp(f)
+!(exp(f)>=exp(d) & exp(f)<=exp(e))
 ```
+totchol is not confounder for sex and age with cursmoke
+
+
 
 ```{r}
-#adjust sysbp
-cursmoke_adj_sysbp <- glm(cursmoke~sysbp, data = smoke_na_omit,family = "binomial")$residuals
-age_adj_sysbp <- lm(age~sysbp, data = smoke_na_omit)$residuals
-adj_res_sysbp <- tibble(id=smoke_na_omit$randid, cursmoke_adj_sysbp=cursmoke_adj_sysbp, age_adj_sysbp=age_adj_sysbp)
-
-adj_res_sysbp %>%
-ggplot(aes(x=age_adj_sysbp, y=cursmoke_adj_sysbp))+
-geom_point(size=0.75) +
-geom_smooth(method = 'loess') +
-ggtitle("cursmoke vs age, sysbp adjusted")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+sysbp, data=smoke_vs1,family = 'binomial')
+a=(summary(glm1)$coefficients[2])-(1.96 * (summary(glm1)$coefficients[5])) 
+b= (summary(glm1)$coefficients[2])+(1.96 * (summary(glm1)$coefficients[5]))
+c=summary(glm2)$coefficients[2]
+exp(a)
+exp(b)
+exp(c)
+!(exp(c)>=exp(a) & exp(c)<=exp(b))
+d=(summary(glm1)$coefficients[3])-(1.96 * (summary(glm1)$coefficients[6]))
+e=(summary(glm1)$coefficients[3])+(1.96 * (summary(glm1)$coefficients[6]))
+f=summary(glm2)$coefficients[3]
+exp(d)
+exp(e)
+exp(f)
+!(exp(f)>=exp(d) & exp(f)<=exp(e))
 ```
+sysbp is not confounder for sex and age with cursmoke
 
 ```{r}
-#adjust diabp
-cursmoke_adj_diabp <- glm(cursmoke~diabp, data = smoke_na_omit,family = "binomial")$residuals
-age_adj_diabp <- lm(age~diabp, data = smoke_na_omit)$residuals
-adj_res_diabp <- tibble(id=smoke_na_omit$randid, cursmoke_adj_diabp=cursmoke_adj_diabp, age_adj_sysbp=age_adj_diabp)
-
-adj_res_diabp %>%
-ggplot(aes(x=age_adj_diabp, y=cursmoke_adj_diabp))+
-geom_point(size=0.75) +
-geom_smooth(method = 'loess') +
-ggtitle("cursmoke vs age, diabp adjusted")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+diabp, data=smoke_vs1,family = 'binomial')
+a=(summary(glm1)$coefficients[2])-(1.96 * (summary(glm1)$coefficients[5])) 
+b= (summary(glm1)$coefficients[2])+(1.96 * (summary(glm1)$coefficients[5]))
+c=summary(glm2)$coefficients[2]
+exp(a)
+exp(b)
+exp(c)
+!(exp(c)>=exp(a) & exp(c)<=exp(b))
+d=(summary(glm1)$coefficients[3])-(1.96 * (summary(glm1)$coefficients[6]))
+e=(summary(glm1)$coefficients[3])+(1.96 * (summary(glm1)$coefficients[6]))
+f=summary(glm2)$coefficients[3]
+exp(d)
+exp(e)
+exp(f)
+!(exp(f)>=exp(d) & exp(f)<=exp(e))
 ```
+diabp is is not confounder for sex and age with cursmoke
 
 ```{r}
-#adjust bmi
-cursmoke_adj_bmi <- glm(cursmoke~bmi, data = smoke_na_omit,family = "binomial")$residuals
-age_adj_bmi <- lm(age~bmi, data = smoke_na_omit)$residuals
-adj_res_bmi <- tibble(id=smoke_na_omit$randid, cursmoke_adj_bmi=cursmoke_adj_bmi, age_adj_bmi=age_adj_bmi)
-
-adj_res_bmi %>%
-ggplot(aes(x=age_adj_bmi, y=cursmoke_adj_bmi))+
-geom_point(size=0.75) +
-geom_smooth(method = 'loess') +
-ggtitle("cursmoke vs age, bmi adjusted")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+bmi, data=smoke_vs1,family = 'binomial')
+a=(summary(glm1)$coefficients[2])-(1.96 * (summary(glm1)$coefficients[5])) 
+b= (summary(glm1)$coefficients[2])+(1.96 * (summary(glm1)$coefficients[5]))
+c=summary(glm2)$coefficients[2]
+exp(a)
+exp(b)
+exp(c)
+!(exp(c)>=exp(a) & exp(c)<=exp(b))
+d=(summary(glm1)$coefficients[3])-(1.96 * (summary(glm1)$coefficients[6]))
+e=(summary(glm1)$coefficients[3])+(1.96 * (summary(glm1)$coefficients[6]))
+f=summary(glm2)$coefficients[3]
+exp(d)
+exp(e)
+exp(f)
+!(exp(f)>=exp(d) & exp(f)<=exp(e))
 ```
+bmi is is not confounder for sex and age with cursmoke
 
 ```{r}
-#adjust heartrte
-cursmoke_adj_heartrte <- glm(cursmoke~heartrte, data = smoke_na_omit,family = "binomial")$residuals
-age_adj_heartrte <- lm(age~heartrte, data = smoke_na_omit)$residuals
-adj_res_heartrte <- tibble(id=smoke_na_omit$randid, cursmoke_adj_heartrte=cursmoke_adj_heartrte, age_adj_heartrte=age_adj_heartrte)
-
-adj_res_heartrte %>%
-ggplot(aes(x=age_adj_heartrte, y=cursmoke_adj_heartrte))+
-geom_point(size=0.75) +
-geom_smooth(method = 'loess') +
-ggtitle("cursmoke vs age, heartrte adjusted")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+heartrte, data=smoke_vs1,family = 'binomial')
+a=(summary(glm1)$coefficients[2])-(1.96 * (summary(glm1)$coefficients[5])) 
+b= (summary(glm1)$coefficients[2])+(1.96 * (summary(glm1)$coefficients[5]))
+c=summary(glm2)$coefficients[2]
+exp(a)
+exp(b)
+exp(c)
+!(exp(c)>=exp(a) & exp(c)<=exp(b))
+d=(summary(glm1)$coefficients[3])-(1.96 * (summary(glm1)$coefficients[6]))
+e=(summary(glm1)$coefficients[3])+(1.96 * (summary(glm1)$coefficients[6]))
+f=summary(glm2)$coefficients[3]
+exp(d)
+exp(e)
+exp(f)
+!(exp(f)>=exp(d) & exp(f)<=exp(e))
 ```
+heartrte is is not confounder for sex and age with cursmoke
 
 ```{r}
-#adjust educ
-cursmoke_adj_educ <- glm(cursmoke~educ, data = smoke_na_omit,family = "binomial")$residuals
-age_adj_educ <- lm(age~educ, data = smoke_na_omit)$residuals
-adj_res_educ <- tibble(id=smoke_na_omit$randid, cursmoke_adj_educ=cursmoke_adj_educ, age_adj_educ=age_adj_educ)
-
-adj_res_educ %>%
-ggplot(aes(x=age_adj_educ, y=cursmoke_adj_educ))+
-geom_point(size=0.75) +
-geom_smooth(method = 'loess') +
-ggtitle("cursmoke vs age, educ adjusted")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+educ, data=smoke_vs1,family = 'binomial')
+a=(summary(glm1)$coefficients[2])-(1.96 * (summary(glm1)$coefficients[5])) 
+b= (summary(glm1)$coefficients[2])+(1.96 * (summary(glm1)$coefficients[5]))
+c=summary(glm2)$coefficients[2]
+exp(a)
+exp(b)
+exp(c)
+!(exp(c)>=exp(a) & exp(c)<=exp(b))
+d=(summary(glm1)$coefficients[3])-(1.96 * (summary(glm1)$coefficients[6]))
+e=(summary(glm1)$coefficients[3])+(1.96 * (summary(glm1)$coefficients[6]))
+f=summary(glm2)$coefficients[3]
+exp(d)
+exp(e)
+exp(f)
+!(exp(f)>=exp(d) & exp(f)<=exp(e))
 ```
+educ is  not confounder for sex and age with cursmoke
 
 ```{r}
-#adjust diabetes
-cursmoke_adj_diabetes <- glm(cursmoke~diabetes, data = smoke_na_omit,family = "binomial")$residuals
-age_adj_diabetes <- lm(age~diabetes, data = smoke_na_omit)$residuals
-adj_res_diabetes <- tibble(id=smoke_na_omit$randid, cursmoke_adj_diabetes=cursmoke_adj_diabetes, age_adj_diabetes=age_adj_diabetes)
-
-adj_res_diabetes %>%
-ggplot(aes(x=age_adj_diabetes, y=cursmoke_adj_diabetes))+
-geom_point(size=0.75) +
-geom_smooth(method = 'loess') +
-ggtitle("cursmoke vs age, diabetes adjusted")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+diabetes, data=smoke_vs1,family = 'binomial')
+a=(summary(glm1)$coefficients[2])-(1.96 * (summary(glm1)$coefficients[5])) 
+b= (summary(glm1)$coefficients[2])+(1.96 * (summary(glm1)$coefficients[5]))
+c=summary(glm2)$coefficients[2]
+exp(a)
+exp(b)
+exp(c)
+!(exp(c)>=exp(a) & exp(c)<=exp(b))
+d=(summary(glm1)$coefficients[3])-(1.96 * (summary(glm1)$coefficients[6]))
+e=(summary(glm1)$coefficients[3])+(1.96 * (summary(glm1)$coefficients[6]))
+f=summary(glm2)$coefficients[3]
+exp(d)
+exp(e)
+exp(f)
+!(exp(f)>=exp(d) & exp(f)<=exp(e))
 ```
+diabetes is not confounder for sex and age with cursmoke
 
 Using backward elimination:
 ```{r}
-smoke.vs = smoke %>% 
-  filter(period==1) %>% 
-  dplyr::select(c(randid,sex,age,cursmoke,totchol,bmi,heartrte,educ,diabp,sysbp,diabetes,heartrte)) %>% 
-  mutate(cursmoke = as.factor(cursmoke)) %>% 
-  na.omit()
+
 
 #(1)
 ###backward elimination###
 
-back.fit <- glm(cursmoke ~ .-randid, data=smoke.vs,family = 'binomial')
+back.fit <- glm(cursmoke ~ .-randid, data=smoke_vs1,family = 'binomial')
 summary(back.fit)
 #We then take out the variables with the highest p-value:
 
@@ -312,156 +328,171 @@ summary(step2)
 ```
 
 
-
 #Question 2
 
 
 Variable Selection and confounder identidication:
 
-Residual plots for finding confounders between number of cigarettes smoked per day and age
 ```{r}
-#cigpday vs age
-smoke_na_omit %>%
-  ggplot(aes(x = age, y = cigpday))+
-  geom_jitter(height = 0.1) +
-  geom_point(size=0.1) +
-  geom_smooth(method = 'loess') +
-ggtitle('cigpday vs age, Scatterplot')+ 
-  theme( plot.title = element_text(hjust = 0.5))
+smoke_vs2 = smoke %>% 
+  filter(period==1) %>% 
+  dplyr::select(c(randid,sex,age,cigpday,totchol,bmi,heartrte,educ,diabp,sysbp,diabetes)) %>% 
+  mutate(sex=as.factor(sex), diabetes=as.factor(diabetes)) %>% 
+  na.omit()
 ```
 
 ```{r}
-#adjust sex
-cigpday_adj_sex <- lm(cigpday~sex, data = smoke_na_omit)$residuals
-age_adj_sex <- lm(age~sex, data = smoke_na_omit)$residuals
-adj_res_sex <- tibble(id=smoke_na_omit$randid, cigpday_adj_sex=cigpday_adj_sex, age_adj_sex=age_adj_sex)
-
-adj_res_sex %>%
-ggplot(aes(x=age_adj_sex, y=cigpday_adj_sex))+
-geom_point(size=0.75) +
-geom_smooth(method = 'loess') +
-ggtitle("cigpday vs age, sex adjusted")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-
+lm1 <- lm(cigpday ~ age+sex, data=smoke_vs2)
+lm2 <- lm(cigpday ~ age+sex+totchol, data=smoke_vs2)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[5])) 
+b= (summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[5]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c=a & c<=b)
+d=(summary(lm1)$coefficients[3])-(1.96 * (summary(lm1)$coefficients[6]))
+e=(summary(lm1)$coefficients[3])+(1.96 * (summary(lm1)$coefficients[6]))
+f=summary(lm2)$coefficients[3]
+d
+e
+f
+!(f>=d & f<=e)
 ```
+totchol is not confounder for age and sex with cigpday
 
 ```{r}
-#adjust totchol
-
-cigpday_adj_totchol <- lm(cigpday~totchol, data = smoke_na_omit)$residuals
-age_adj_totchol <- lm(age~totchol, data = smoke_na_omit)$residuals
-adj_res_totchol <- tibble(id=smoke_na_omit$randid, cigpday_adj_totchol=cigpday_adj_totchol, age_adj_totchol=age_adj_totchol)
-
-adj_res_totchol %>%
-ggplot(aes(x=age_adj_totchol, y=cigpday_adj_totchol))+
-geom_point(size=0.75) +
-geom_smooth(method = 'loess') +
-ggtitle("cigpday vs age, totchol adjusted")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-
+lm1 <- lm(cigpday ~ age+sex, data=smoke_vs2)
+lm2 <- lm(cigpday ~ age+sex+bmi, data=smoke_vs2)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[5])) 
+b= (summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[5]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c=a & c<=b)
+d=(summary(lm1)$coefficients[3])-(1.96 * (summary(lm1)$coefficients[6]))
+e=(summary(lm1)$coefficients[3])+(1.96 * (summary(lm1)$coefficients[6]))
+f=summary(lm2)$coefficients[3]
+d
+e
+f
+!(f>=d & f<=e)
 ```
+bmi is not confounder for age and sex with cigpday
+
 
 ```{r}
-#adjust sysbp
-cigpday_adj_sysbp <- lm(cigpday~sysbp, data = smoke_na_omit)$residuals
-age_adj_sysbp <- lm(age~sysbp, data = smoke_na_omit)$residuals
-adj_res_sysbp <- tibble(id=smoke_na_omit$randid, cigpday_adj_sysbp=cigpday_adj_sysbp, age_adj_sysbp=age_adj_sysbp)
-
-adj_res_sysbp %>%
-ggplot(aes(x=age_adj_sysbp, y=cigpday_adj_sysbp))+
-geom_point(size=0.75) +
-geom_smooth(method = 'loess') +
-ggtitle("cigpday vs age, sysbp adjusted")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-
+lm1 <- lm(cigpday ~ age+sex, data=smoke_vs2)
+lm2 <- lm(cigpday ~ age+sex+heartrte, data=smoke_vs2)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[5])) 
+b= (summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[5]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c=a & c<=b)
+d=(summary(lm1)$coefficients[3])-(1.96 * (summary(lm1)$coefficients[6]))
+e=(summary(lm1)$coefficients[3])+(1.96 * (summary(lm1)$coefficients[6]))
+f=summary(lm2)$coefficients[3]
+d
+e
+f
+!(f>=d & f<=e)
 ```
+heartrte is not confounder for age and sex with cigpday
+
 
 ```{r}
-#adjust diabp
-cigpday_adj_diabp <- lm(cigpday~diabp, data = smoke_na_omit)$residuals
-age_adj_diabp <- lm(age~diabp, data = smoke_na_omit)$residuals
-adj_res_diabp <- tibble(id=smoke_na_omit$randid, cigpday_adj_diabp=cigpday_adj_diabp, age_adj_sysbp=age_adj_diabp)
-
-adj_res_diabp %>%
-ggplot(aes(x=age_adj_diabp, y=cigpday_adj_diabp))+
-geom_point(size=0.75) +
-geom_smooth(method = 'loess') +
-ggtitle("cigpday vs age, diabp adjusted")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-
+lm1 <- lm(cigpday ~ age+sex, data=smoke_vs2)
+lm2 <- lm(cigpday ~ age+sex+educ, data=smoke_vs2)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[5])) 
+b= (summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[5]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c=a & c<=b)
+d=(summary(lm1)$coefficients[3])-(1.96 * (summary(lm1)$coefficients[6]))
+e=(summary(lm1)$coefficients[3])+(1.96 * (summary(lm1)$coefficients[6]))
+f=summary(lm2)$coefficients[3]
+d
+e
+f
+!(f>=d & f<=e)
 ```
+educ is not confounder for age and sex with cigpday
 
 ```{r}
-#adjust bmi
-cigpday_adj_bmi <- lm(cigpday~bmi, data = smoke_na_omit)$residuals
-age_adj_bmi <- lm(age~bmi, data = smoke_na_omit)$residuals
-adj_res_bmi <- tibble(id=smoke_na_omit$randid, cigpday_adj_bmi=cigpday_adj_bmi, age_adj_bmi=age_adj_bmi)
-
-adj_res_bmi %>%
-ggplot(aes(x=age_adj_bmi, y=cigpday_adj_bmi))+
-geom_point(size=0.75) +
-geom_smooth(method = 'loess') +
-ggtitle("cigpday vs age, bmi adjusted")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-
+lm1 <- lm(cigpday ~ age+sex, data=smoke_vs2)
+lm2 <- lm(cigpday ~ age+sex+diabp, data=smoke_vs2)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[5])) 
+b= (summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[5]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c=a & c<=b)
+d=(summary(lm1)$coefficients[3])-(1.96 * (summary(lm1)$coefficients[6]))
+e=(summary(lm1)$coefficients[3])+(1.96 * (summary(lm1)$coefficients[6]))
+f=summary(lm2)$coefficients[3]
+d
+e
+f
+!(f>=d & f<=e)
 ```
+diabp is not confounder for age and sex with cigpday
+```{r}
+lm1 <- lm(cigpday ~ age+sex, data=smoke_vs2)
+lm2 <- lm(cigpday ~ age+sex+sysbp, data=smoke_vs2)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[5])) 
+b= (summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[5]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c=a & c<=b)
+d=(summary(lm1)$coefficients[3])-(1.96 * (summary(lm1)$coefficients[6]))
+e=(summary(lm1)$coefficients[3])+(1.96 * (summary(lm1)$coefficients[6]))
+f=summary(lm2)$coefficients[3]
+d
+e
+f
+!(f>=d & f<=e)
+```
+sysbp is not confounder for age and sex with cigpday
+
 
 ```{r}
-#adjust heartrte
-cigpday_adj_heartrte <- lm(cigpday~heartrte, data = smoke_na_omit)$residuals
-age_adj_heartrte <- lm(age~heartrte, data = smoke_na_omit)$residuals
-adj_res_heartrte <- tibble(id=smoke_na_omit$randid, cigpday_adj_heartrte=cigpday_adj_heartrte, age_adj_heartrte=age_adj_heartrte)
-
-adj_res_heartrte %>%
-ggplot(aes(x=age_adj_heartrte, y=cigpday_adj_heartrte))+
-geom_point(size=0.75) +
-geom_smooth(method = 'loess') +
-ggtitle("cigpday vs age, heartrte adjusted")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-
+lm1 <- lm(cigpday ~ age+sex, data=smoke_vs2)
+lm2 <- lm(cigpday ~ age+sex+diabetes, data=smoke_vs2)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[5])) 
+b= (summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[5]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c=a & c<=b)
+d=(summary(lm1)$coefficients[3])-(1.96 * (summary(lm1)$coefficients[6]))
+e=(summary(lm1)$coefficients[3])+(1.96 * (summary(lm1)$coefficients[6]))
+f=summary(lm2)$coefficients[3]
+d
+e
+f
+!(f>=d & f<=e)
 ```
+diabetes is not confounder for age and sex with cigpday
 
-```{r}
-#adjust educ
-cigpday_adj_educ <- lm(cigpday~educ, data = smoke_na_omit)$residuals
-age_adj_educ <- lm(age~educ, data = smoke_na_omit)$residuals
-adj_res_educ <- tibble(id=smoke_na_omit$randid, cigpday_adj_educ=cigpday_adj_educ, age_adj_educ=age_adj_educ)
 
-adj_res_educ %>%
-ggplot(aes(x=age_adj_educ, y=cigpday_adj_educ))+
-geom_point(size=0.75) +
-geom_smooth(method = 'loess') +
-ggtitle("cigpday vs age, educ adjusted")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-
-```
-
-```{r}
-#adjust diabetes
-cigpday_adj_diabetes <- lm(cigpday~diabetes, data = smoke_na_omit)$residuals
-age_adj_diabetes <- lm(age~diabetes, data = smoke_na_omit)$residuals
-adj_res_diabetes <- tibble(id=smoke_na_omit$randid, cigpday_adj_diabetes=cigpday_adj_diabetes, age_adj_diabetes=age_adj_diabetes)
-
-adj_res_diabetes %>%
-ggplot(aes(x=age_adj_diabetes, y=cigpday_adj_diabetes))+
-geom_point(size=0.75) +
-geom_smooth(method = 'loess') +
-ggtitle("cigpday vs age, diabetes adjusted")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-
-```
 
 
 ```{r}
 #(2)
-smoke.vs2 = smoke %>% 
-  filter(period==1) %>%
-  dplyr::select(c(randid,sex,age,cigpday,totchol,bmi,heartrte,educ,diabp,sysbp,diabetes,heartrte)) %>% 
-  na.omit()
+
 
 ###backward elimination###
 
-back.fit2 <- lm(cigpday ~ .-randid, data=smoke.vs2)
+back.fit2 <- lm(cigpday ~ .-randid, data=smoke_vs2)
 summary(back.fit2)
 
 step1 <-update(back.fit2, . ~ . -sysbp)
@@ -475,11 +506,115 @@ summary(step2)
 ```
 
 #Question 3
+```{r}
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + sex, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+sex is not confounder
+
+```{r}
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + age, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+age is not confounder
+
+```{r}
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + totchol, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+totchol is not confounder
+
+```{r}
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + bmi, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+bmi is confounder
+
+```{r}
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + heartrte, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+heartrte is not confounder
+
+```{r}
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + educ, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+educ is not confounder
+
+```{r}
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + diabp, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+diabp is confounder(it is highly correlated with sysbp, how to interpret this?)
+
+```{r}
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + diabetes, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+diabetes is not confounder
+
 
 ```{r}
 #Backward elimination for cursmoke vs. systolic blood pressure
 
-back.fit3 <- lm(sysbp ~ .-randid, data=smoke.vs)
+back.fit3 <- lm(sysbp ~ .-randid, data=smoke_vs1)
 summary(back.fit3)
 #We then take out the variables with the highest p-value:
 
@@ -498,11 +633,115 @@ summary(step2)
 
 
 #Question 4
+```{r}
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + sex, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+sex is not confounder
+
+```{r}
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + age, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+age is confounder
+
+```{r}
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + totchol, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+totchol is not confounder
+
+```{r}
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + bmi, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+bmi is confounder
+
+```{r}
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + heartrte, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+heartrte is not confounder
+
+```{r}
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + educ, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+educ is not confounder
+
+```{r}
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + sysbp, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+sysbp is confounder(it is highly correlated with diabp, how to interpret this?)
+
+```{r}
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + diabetes, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+diabetes is not confounder
+
 
 ```{r}
 #Backward elimination for cursmoke vs. diastolic blood pressure
 
-back.fit4 <- lm(diabp ~ .-randid, data=smoke.vs)
+back.fit4 <- lm(diabp ~ .-randid, data=smoke_vs1)
 summary(back.fit4)
 
 # All variables are significant. 
@@ -514,11 +753,116 @@ summary(back.fit4)
 
 
 #QUestion 5
+```{r}
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + sex, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+sex is not confounder
+
+```{r}
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + age, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+age is confounder
+
+```{r}
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + diabp, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+diabp is not confounder
+
+```{r}
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + bmi, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+bmi is confounder
+
+```{r}
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + heartrte, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+heartrte is not confounder
+
+```{r}
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + educ, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+educ is not confounder
+
+```{r}
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + sysbp, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+sysbp is not confounder
+
+```{r}
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + diabetes, data=smoke_vs1)
+a=(summary(lm1)$coefficients[2])-(1.96 * (summary(lm1)$coefficients[4])) 
+b=(summary(lm1)$coefficients[2])+(1.96 * (summary(lm1)$coefficients[4]))
+c=summary(lm2)$coefficients[2]
+a
+b
+c
+!(c>=a & c<=b)
+```
+diabetes is not confounder
+
+
 
 ```{r}
 #Backward elimination for cursmoke vs. serum total cholesterol
 
-back.fit5 <- lm(totchol ~ .-randid, data=smoke.vs)
+back.fit5 <- lm(totchol ~ .-randid, data=smoke_vs1)
 summary(back.fit5)
 
 step1 <-update(back.fit5, . ~ . -diabetes)
