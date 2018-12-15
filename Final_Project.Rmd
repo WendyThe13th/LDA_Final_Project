@@ -607,6 +607,19 @@ c
 ```
 bmi is confounder
 
+
+checking interactions
+```{r}
+smoke %>%
+  mutate(cursmoke = as.factor(cursmoke)) %>%
+  ggplot(aes(bmi ,sysbp, group = cursmoke, color = cursmoke)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Systolic Blood Pressure across bmi")
+```
+
+This plot argues for some interaction of the two predictors, as the lines are not parallel.
+
+
 ```{r}
 lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
 lm2 <- lm(sysbp ~ cursmoke + heartrte, data=smoke_vs1)
@@ -765,6 +778,20 @@ c
 ```
 bmi is confounder
 
+
+checking interactions
+```{r}
+smoke %>%
+  mutate(cursmoke = as.factor(cursmoke)) %>%
+  ggplot(aes(bmi ,diabp, group = cursmoke, color = cursmoke)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Systolic Blood Pressure across bmi")
+```
+
+This plot argues for some interaction of the two predictors, as the lines are not parallel.
+
+
+
 ```{r}
 lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
 lm2 <- lm(diabp ~ cursmoke + heartrte, data=smoke_vs1)
@@ -895,6 +922,19 @@ c
 ```
 age is confounder
 
+
+checking interactions
+```{r}
+smoke %>%
+  mutate(cursmoke = as.factor(cursmoke)) %>%
+  ggplot(aes(age ,totchol, group = cursmoke, color = cursmoke)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("totchol across age")
+```
+
+This plot argues for some interaction of the two predictors, as the lines are not parallel.
+
+
 ```{r}
 lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
 lm2 <- lm(totchol ~ cursmoke + diabp, data=smoke_vs1)
@@ -920,6 +960,17 @@ c
 !(c>=a & c<=b)
 ```
 bmi is confounder
+
+checking interactions
+```{r}
+smoke %>%
+  mutate(cursmoke = as.factor(cursmoke)) %>%
+  ggplot(aes(bmi ,totchol, group = cursmoke, color = cursmoke)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("totchol across bmi")
+```
+
+This plot argues for some interaction of the two predictors, as the lines are not parallel.
 
 ```{r}
 lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
