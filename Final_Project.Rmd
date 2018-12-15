@@ -38,7 +38,7 @@ smoke %>%
   mutate(sex = as.factor(sex)) %>%
   ggplot(aes(age, cursmoke, group = sex, color = sex)) +
   geom_jitter(height = 0.1, size = 0.5) +
-  geom_smooth(method = "loess") +
+  geom_smooth(method = "loess", se = F) +
   ggtitle("Figure 2: Current Smoking Status across Age") 
 ```
 
@@ -54,7 +54,7 @@ smoke %>%
 smoke %>%
   mutate(sex = as.factor(sex)) %>%
   ggplot(aes(age, cigpday, group = sex, color = sex)) +
-  geom_smooth(method = "loess") +
+  geom_smooth(method = "loess", se = F) +
   ggtitle("Figure 5: Cigarettes per Day across Age") 
   
 ```
@@ -67,19 +67,19 @@ In Figure 5, we see that as systolic blood pressure increases the likelihood of 
 smoke %>%
   mutate(cursmoke = as.factor(cursmoke)) %>%
   ggplot(aes(age ,sysbp, group = cursmoke, color = cursmoke)) +
-  geom_smooth(method = "loess") +
+  geom_smooth(method = "loess", se = F) +
   ggtitle("Figure 5: Systolic Blood Pressure across Age")
 
 smoke %>%
   mutate(cursmoke = as.factor(cursmoke)) %>%
   ggplot(aes(age, diabp, group = cursmoke, color = cursmoke)) +
-  geom_smooth(methed = "loess") +
+  geom_smooth(method = "loess", se = F) +
   ggtitle("Figure 6: Diastolic Blood Pressure across Age")
 
 smoke %>%
   mutate(cursmoke = as.factor(cursmoke)) %>%
-  ggplot(aes(age, diabp, cursmoke, group = cursmoke, color = cursmoke)) +
-  geom_smooth(method = "loess") +
+  ggplot(aes(age, diabetes, cursmoke, group = cursmoke, color = cursmoke)) +
+  geom_smooth(method = "loess", se = F) +
   ggtitle("Figure 7: Diabetes Status across Age")
 ```
 
