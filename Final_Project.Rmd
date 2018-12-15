@@ -80,7 +80,7 @@ smoke %>%
   mutate(cursmoke = as.factor(cursmoke)) %>%
   ggplot(aes(age, totchol, cursmoke, group = cursmoke, color = cursmoke)) +
   geom_smooth(method = "loess", se = F) +
-  ggtitle("Figure 7: Totchol across Age")
+  ggtitle("Figure 7: Total Cholesterol across Age")
 ```
 
 
