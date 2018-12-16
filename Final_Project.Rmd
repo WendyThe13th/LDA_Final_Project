@@ -202,26 +202,6 @@ prevap is not confounder for sex and age with cursmoke
 
 ```{r}
 glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
-glm2 <- glm(cursmoke ~ age+sex+bpmeds, data=smoke_vs1,family = 'binomial')
-a=(summary(glm1)$coefficients[2])-(1.96 * (summary(glm1)$coefficients[5])) 
-b= (summary(glm1)$coefficients[2])+(1.96 * (summary(glm1)$coefficients[5]))
-c=summary(glm2)$coefficients[2]
-exp(a)
-exp(b)
-exp(c)
-!(exp(c)>=exp(a) & exp(c)<=exp(b))
-d=(summary(glm1)$coefficients[3])-(1.96 * (summary(glm1)$coefficients[6]))
-e=(summary(glm1)$coefficients[3])+(1.96 * (summary(glm1)$coefficients[6]))
-f=summary(glm2)$coefficients[3]
-exp(d)
-exp(e)
-exp(f)
-!(exp(f)>=exp(d) & exp(f)<=exp(e))
-```
-bpmdes is not confounder for sex and age with cursmoke
-
-```{r}
-glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
 glm2 <- glm(cursmoke ~ age+sex+totchol, data=smoke_vs1,family = 'binomial')
 a=(summary(glm1)$coefficients[2])-(1.96 * (summary(glm1)$coefficients[5])) 
 b= (summary(glm1)$coefficients[2])+(1.96 * (summary(glm1)$coefficients[5]))
@@ -369,12 +349,29 @@ smoke_vs3 = smoke %>%
   dplyr::select(c(randid,sex,age,cursmoke)) %>% 
   mutate(cursmoke = as.factor(cursmoke), sex=as.factor(sex)) %>% 
   na.omit()
-glmer_1 <- glmer(cursmoke ~ age + sex + (1 | randid),
+glmer_1 <- glmer(cursmoke ~ age *sex + (1 | randid),
                  data = smoke_vs3, 
                  family = binomial)
 summary(glmer_1) 
 ```
 significant. 
+```{r}
+#CI age
+-0.23847-1.96*0.01456
+-0.23847+1.96*0.01456
+```
+
+```{r}
+#CI sex
+-6.93043-1.96*1.09252
+-6.93043+1.96*1.09252
+```
+
+```{r}
+#CIage:sex2     
+0.05611-1.96*0.01671
+0.05611+1.96*0.01671
+```
 
 
 #Question 2
@@ -546,13 +543,42 @@ smoke_vs4_smoker = smoke_vs4 %>% filter(!randid %in% nonsmoker_id)
 ```
 
 ```{r}
-lmer_2 <- lmer(cigpday ~ age + sex + (1 | randid),
+lmer_2 <- lmer(cigpday ~ age * sex + (1 | randid),
                     data = smoke_vs4_smoker)
 summary(lmer_2)
  
 ```
 Ignore those who did not smoke through the whole study.
 
+pvalue
+```{r}
+#age
+pnorm(-0.06629/0.02622)
+```
+```{r}
+#CI age
+-0.06629-1.96*0.02622
+-0.06629+1.96*0.02622
+```
+```{r}
+#sex
+pnorm(-15.59130/2.00555)
+```
+```{r}
+#CI sex
+-15.59130-1.96*2.00555
+-15.59130+1.96*2.00555
+```
+
+```{r}
+#age:sex2      
+1-pnorm(0.17357/0.03739)
+```
+```{r}
+#CI age:sex2      
+0.17357-1.96*0.03739
+0.17357+1.96*0.03739
+```
 
 #Question 3
 ```{r}
@@ -607,17 +633,6 @@ c
 ```
 bmi is confounder
 
-
-checking interactions
-```{r}
-smoke %>%
-  mutate(cursmoke = as.factor(cursmoke)) %>%
-  ggplot(aes(bmi ,sysbp, group = cursmoke, color = cursmoke)) +
-  geom_smooth(method = "loess", se = F) +
-  ggtitle("Systolic Blood Pressure across bmi")
-```
-
-This plot argues for some interaction of the two predictors, as the lines are not parallel.
 
 
 ```{r}
@@ -719,8 +734,55 @@ smoke_vs5 = smoke %>%
   dplyr::select(c(randid,cursmoke,sex,age,bmi,sysbp)) %>% 
   mutate(sex=as.factor(sex),cursmoke=as.factor(cursmoke)) %>% 
   na.omit()
-lmer_3 <- lmer(sysbp ~ cursmoke + sex + bmi + age + (1|randid), data = smoke_vs5)
+```
+
+
+no interaction term because not significant
+```{r}
+
+lmer_3 <- lmer(sysbp ~ cursmoke + bmi + sex + age + (1|randid), data = smoke_vs5)
 summary(lmer_3)
+```
+Calculating p value using normal approximation:
+
+```{r}
+#cursmoke
+pnorm(-0.008418/0.432847)
+```
+Not significant,but include because this is our interest
+```{r}
+#cursmoke 95% CI 
+-0.008418-1.96*0.432847
+-0.008418+1.96*0.432847
+```
+```{r}
+#bmi
+1-pnorm(1.443149/0.057512)
+```
+```{r}
+#CI bmi
+1.443149-1.96*0.057512
+1.443149+1.96*0.057512
+```
+
+```{r}
+#sex
+1-pnorm(2.609485/0.552576)
+```
+```{r}
+#95%CI sex
+2.609485-1.96*0.552576
+2.609485+1.96*0.552576
+```
+
+```{r}
+#age
+1-pnorm(0.855104/0.020583)
+```
+```{r}
+#age
+0.855104-1.96*0.020583
+0.855104+1.96*0.020583
 ```
 
 
@@ -777,18 +839,6 @@ c
 !(c>=a & c<=b)
 ```
 bmi is confounder
-
-
-checking interactions
-```{r}
-smoke %>%
-  mutate(cursmoke = as.factor(cursmoke)) %>%
-  ggplot(aes(bmi ,diabp, group = cursmoke, color = cursmoke)) +
-  geom_smooth(method = "loess", se = F) +
-  ggtitle("Systolic Blood Pressure across bmi")
-```
-
-This plot argues for some interaction of the two predictors, as the lines are not parallel.
 
 
 
@@ -886,13 +936,82 @@ not confounder
 
 By rule of thumb, age, bmi is confounder. Based on the literature view, sex can be potential confounders as it can affect smoke status and diabp at the same time. So we still put them into model.
 
+checking interactions
 ```{r}
 smoke_vs6 = smoke %>% 
   dplyr::select(c(randid,cursmoke,sex,age,bmi,diabp)) %>% 
   mutate(sex=as.factor(sex),cursmoke=as.factor(cursmoke)) %>% 
   na.omit()
-lmer_4 <- lmer(diabp ~ cursmoke + sex + bmi + age + (1|randid), data = smoke_vs6)
+smoke_vs6 %>%
+  mutate(cursmoke = as.factor(cursmoke)) %>%
+  ggplot(aes(bmi ,diabp, group = cursmoke, color = cursmoke)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Systolic Blood Pressure across bmi")
+```
+
+This plot argues for some interaction of the two predictors, as the lines are not parallel.
+
+```{r}
+
+lmer_4 <- lmer(diabp ~  cursmoke*bmi + sex  +cursmoke*age + (1|randid), data = smoke_vs6)
 summary(lmer_4)
+```
+pvalue
+```{r}
+#cursmoke
+pnorm(-11.20762/1.83644)
+```
+```{r}
+#CI cursmoke
+-11.20762-1.96*1.83644
+-11.20762+1.96*1.83644
+```
+```{r}
+#bmi
+1-pnorm(0.98322/0.03816)
+```
+```{r}
+#CIbmi
+0.98322-1.96*0.03816
+0.98322+1.96*0.03816
+```
+
+```{r}
+#sex
+pnorm(-0.51623/0.29304)
+```
+```{r}
+#CI sex
+-0.51623-1.96*0.29304
+-0.51623+1.96*0.29304
+```
+```{r}
+#age
+pnorm(-0.05122/0.01442)
+```
+```{r}
+#CI age
+-0.05122-1.96*0.01442
+-0.05122+1.96*0.01442
+```
+```{r}
+#cursmoke1:bmi   
+1-pnorm(0.09296/0.05477)
+```
+```{r}
+#cursmoke1:bmi   
+0.09296-1.96*0.05477
+0.09296+1.96*0.05477
+```
+
+```{r}
+#cursmoke1:age   
+1-pnorm(0.16113/0.02129)
+```
+```{r}
+#cursmoke1:age  
+0.16113-1.96*0.02129
+0.16113+1.96*0.02129
 ```
 
 #QUestion 5
@@ -923,17 +1042,6 @@ c
 age is confounder
 
 
-checking interactions
-```{r}
-smoke %>%
-  mutate(cursmoke = as.factor(cursmoke)) %>%
-  ggplot(aes(age ,totchol, group = cursmoke, color = cursmoke)) +
-  geom_smooth(method = "loess", se = F) +
-  ggtitle("totchol across age")
-```
-
-This plot argues for some interaction of the two predictors, as the lines are not parallel.
-
 
 ```{r}
 lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
@@ -961,16 +1069,6 @@ c
 ```
 bmi is confounder
 
-checking interactions
-```{r}
-smoke %>%
-  mutate(cursmoke = as.factor(cursmoke)) %>%
-  ggplot(aes(bmi ,totchol, group = cursmoke, color = cursmoke)) +
-  geom_smooth(method = "loess", se = F) +
-  ggtitle("totchol across bmi")
-```
-
-This plot argues for some interaction of the two predictors, as the lines are not parallel.
 
 ```{r}
 lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
@@ -1092,13 +1190,87 @@ not confounder
 
 By rule of thumb, age, bmi is confounder. Based on the literature view, sex can be potential confounders as it can affect smoke status and totchol at the same time. So we still put them into model.
 
+
+
 ```{r}
 smoke_vs7 = smoke %>% 
   dplyr::select(c(randid,cursmoke,sex,age,bmi,totchol)) %>% 
   mutate(sex=as.factor(sex),cursmoke=as.factor(cursmoke)) %>% 
   na.omit()
-lmer_5 <- lmer(totchol ~ cursmoke + sex + bmi + age + (1|randid), data = smoke_vs7)
-summary(lmer_5)
 ```
 
+checking interactions
+```{r}
+smoke_vs7 %>%
+  mutate(cursmoke = as.factor(cursmoke)) %>%
+  ggplot(aes(bmi ,totchol, group = cursmoke, color = cursmoke)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("totchol across bmi")
+```
+This plot argues for some interaction of the two predictors, as the lines are not parallel.
 
+
+```{r}
+
+lmer_5 <- lmer(totchol ~ cursmoke*bmi + sex +cursmoke*age + (1|randid), data = smoke_vs7)
+summary(lmer_5)
+```
+```{r}
+#cursmoke
+pnorm(-29.38692/7.05633)
+```
+```{r}
+#CI cursmoke
+-29.38692-1.96*7.05633
+-29.38692+1.96*7.05633
+```
+```{r}
+#bmi
+1-pnorm(1.45643/0.15257)
+```
+```{r}
+#CI bmi
+1.45643-1.96*0.15257
+1.45643+1.96*0.15257
+```
+```{r}
+#sex
+1-pnorm(13.94202/1.22545)
+```
+```{r}
+#CI sex
+13.94202-1.96*1.22545
+13.94202+1.96*1.22545
+```
+
+```{r}
+#age
+1-pnorm(0.32861/0.05514)
+```
+
+```{r}
+#CI age
+0.32861-1.96*0.05514
+0.32861+1.96*0.05514
+```
+
+```{r}
+#cursmoke1:bmi   
+1-pnorm(0.74739/0.21240)
+```
+```{r}
+#CI cursmoke1:bmi   
+0.74739-1.96*0.21240
+0.74739+1.96*0.21240
+```
+
+```{r}
+#cursmoke1:age   
+1-pnorm(0.26381/0.08053)
+```
+```{r}
+#CI  cursmoke1:age   
+0.26381-1.96*0.08053
+0.26381+1.96*0.08053
+```
+Please include a table which shows point estimate, 95 CI and p value for each term in the model(calculated above)
