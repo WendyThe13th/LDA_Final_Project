@@ -15,6 +15,15 @@ library(corrplot)
 library(ggplot2)
 library(broom)
 library(mice)
+
+library(devtools)                                                                                                                                
+install_github("swihart/lasagnar")                                                               
+library(fields)
+library(lasagnar)   
+library(reshape2)
+library(RColorBrewer)
+library(colorspace) 
+
 ```
 
 ```{r}
@@ -553,7 +562,7 @@ Ignore those who did not smoke through the whole study.
 pvalue
 ```{r}
 #age
-pnorm(-0.06629/0.02622)
+2*pnorm(-0.06629/0.02622)
 ```
 ```{r}
 #CI age
@@ -562,7 +571,7 @@ pnorm(-0.06629/0.02622)
 ```
 ```{r}
 #sex
-pnorm(-15.59130/2.00555)
+2*pnorm(-15.59130/2.00555)
 ```
 ```{r}
 #CI sex
@@ -572,7 +581,7 @@ pnorm(-15.59130/2.00555)
 
 ```{r}
 #age:sex2      
-1-pnorm(0.17357/0.03739)
+2*(1-pnorm(0.17357/0.03739))
 ```
 ```{r}
 #CI age:sex2      
@@ -747,7 +756,7 @@ Calculating p value using normal approximation:
 
 ```{r}
 #cursmoke
-pnorm(-0.008418/0.432847)
+2*(pnorm(-0.008418/0.432847))
 ```
 Not significant,but include because this is our interest
 ```{r}
@@ -757,7 +766,7 @@ Not significant,but include because this is our interest
 ```
 ```{r}
 #bmi
-1-pnorm(1.443149/0.057512)
+2*(1-pnorm(1.443149/0.057512))
 ```
 ```{r}
 #CI bmi
@@ -767,7 +776,7 @@ Not significant,but include because this is our interest
 
 ```{r}
 #sex
-1-pnorm(2.609485/0.552576)
+2*(1-pnorm(2.609485/0.552576))
 ```
 ```{r}
 #95%CI sex
@@ -777,7 +786,7 @@ Not significant,but include because this is our interest
 
 ```{r}
 #age
-1-pnorm(0.855104/0.020583)
+2*(1-pnorm(0.855104/0.020583))
 ```
 ```{r}
 #age
@@ -957,61 +966,69 @@ lmer_4 <- lmer(diabp ~  cursmoke*bmi + sex  +cursmoke*age + (1|randid), data = s
 summary(lmer_4)
 ```
 pvalue
+
+```{r}
+coefs4<- data.frame(coef(summary(lmer_4)))
+pvalue<-round(2*(1-pnorm(abs(coefs4$t.value))),3)
+pvalue
+```
+cursmoke1:bmi not siginificant, remove this iteraction
+
+```{r}
+
+lmer_41 <- lmer(diabp ~  bmi + sex  +cursmoke*age + (1|randid), data = smoke_vs6)
+summary(lmer_41)
+```
+
 ```{r}
 #cursmoke
-pnorm(-11.20762/1.83644)
+2*(pnorm(-8.81416/1.17670))
 ```
 ```{r}
 #CI cursmoke
--11.20762-1.96*1.83644
--11.20762+1.96*1.83644
+-8.81416-1.96*1.17670
+-8.81416+1.96*1.17670
 ```
 ```{r}
 #bmi
-1-pnorm(0.98322/0.03816)
+2*(1-pnorm(1.02005/0.03139))
 ```
 ```{r}
 #CIbmi
-0.98322-1.96*0.03816
-0.98322+1.96*0.03816
+1.02005-1.96*0.03139
+1.02005+1.96*0.03139
 ```
 
 ```{r}
 #sex
-pnorm(-0.51623/0.29304)
+2*(pnorm(-0.53287/0.29288))
 ```
+although not significant, it is confounder, so we still put in into the model
 ```{r}
 #CI sex
--0.51623-1.96*0.29304
--0.51623+1.96*0.29304
+-0.53287-1.96*0.29288
+-0.53287+1.96*0.29288
 ```
 ```{r}
 #age
-pnorm(-0.05122/0.01442)
+2*pnorm(-0.05110/0.01442)
 ```
 ```{r}
 #CI age
--0.05122-1.96*0.01442
--0.05122+1.96*0.01442
+-0.05110-1.96*0.01442
+-0.05110+1.96*0.01442
 ```
-```{r}
-#cursmoke1:bmi   
-1-pnorm(0.09296/0.05477)
-```
-```{r}
-#cursmoke1:bmi   
-0.09296-1.96*0.05477
-0.09296+1.96*0.05477
-```
+
 
 ```{r}
 #cursmoke1:age   
-1-pnorm(0.16113/0.02129)
+2*(1-pnorm(0.16118/0.02129 ))
 ```
+
 ```{r}
 #cursmoke1:age  
-0.16113-1.96*0.02129
-0.16113+1.96*0.02129
+0.16118-1.96*0.02129
+0.16118+1.96*0.02129
 ```
 
 #QUestion 5
@@ -1217,7 +1234,7 @@ summary(lmer_5)
 ```
 ```{r}
 #cursmoke
-pnorm(-29.38692/7.05633)
+2*pnorm(-29.38692/7.05633)
 ```
 ```{r}
 #CI cursmoke
@@ -1226,7 +1243,7 @@ pnorm(-29.38692/7.05633)
 ```
 ```{r}
 #bmi
-1-pnorm(1.45643/0.15257)
+2*(1-pnorm(1.45643/0.15257))
 ```
 ```{r}
 #CI bmi
@@ -1235,7 +1252,7 @@ pnorm(-29.38692/7.05633)
 ```
 ```{r}
 #sex
-1-pnorm(13.94202/1.22545)
+2*(1-pnorm(13.94202/1.22545))
 ```
 ```{r}
 #CI sex
@@ -1245,7 +1262,7 @@ pnorm(-29.38692/7.05633)
 
 ```{r}
 #age
-1-pnorm(0.32861/0.05514)
+2*(1-pnorm(0.32861/0.05514))
 ```
 
 ```{r}
@@ -1256,7 +1273,7 @@ pnorm(-29.38692/7.05633)
 
 ```{r}
 #cursmoke1:bmi   
-1-pnorm(0.74739/0.21240)
+2*(1-pnorm(0.74739/0.21240))
 ```
 ```{r}
 #CI cursmoke1:bmi   
@@ -1266,7 +1283,7 @@ pnorm(-29.38692/7.05633)
 
 ```{r}
 #cursmoke1:age   
-1-pnorm(0.26381/0.08053)
+2*(1-pnorm(0.26381/0.08053))
 ```
 ```{r}
 #CI  cursmoke1:age   
