@@ -16,14 +16,6 @@ library(ggplot2)
 library(broom)
 library(mice)
 
-library(devtools)                                                                                                                                
-install_github("swihart/lasagnar")                                                               
-library(fields)
-library(lasagnar)   
-library(reshape2)
-library(RColorBrewer)
-library(colorspace) 
-
 ```
 
 ```{r}
@@ -32,6 +24,17 @@ smoke <- read.csv(file = 'frmgham2.csv') %>%
 ```
 
 
+
+```{r}
+#checking missing values (5% rule)
+pMiss <- function(x){sum(is.na(x))/length(x)*100}
+apply(smoke,2,pMiss) #2 indicates columns
+#Remove hdlc, ldlc, glucose, and bpmeds for having more than 5% of missing values.
+```
+It is okay as hdlc, ldlc are highly correlated with totchol, glucose is highy correlated with diabetes, bpmeds is highly correlated with sysbp and diabp. Therefore it won't lose much information to just drop these features.
+
+#Part1
+# Question 1
 Figure 1 shows that as individuals age, the likelihood that they are smoking decreases. We can see that when we breaking individuals down by sex, it appears that the overall trend is the same between sexes with males having an overall higher likelihood of being smokers as age increases. 
 
 ```{r}
@@ -50,59 +53,6 @@ smoke %>%
   geom_smooth(method = "loess", se = F) +
   ggtitle("Figure 2: Current Smoking Status across Age") 
 ```
-
-When looking at cigarette packs smoked per day, it appears that the number steadily decreases as individuals get older. The trend once again is the same in each sex however females are smoking less packs a day overall.
-
-```{r}
-
-smoke %>%
-  ggplot(aes(age, cigpday)) +
-  geom_smooth(method = "loess") +
-  ggtitle("Figure 4: Cigarette per Day across Age")
-
-smoke %>%
-  mutate(sex = as.factor(sex)) %>%
-  ggplot(aes(age, cigpday, group = sex, color = sex)) +
-  geom_smooth(method = "loess", se = F) +
-  ggtitle("Figure 5: Cigarettes per Day across Age") 
-  
-```
-
-
-In Figure 5, we see that as systolic blood pressure increases the likelihood of smoking decreases. The trend is not as profound in Figure 6 with diastolic BP or with serum total cholesterol in Figure 7. 
-
-```{r}
-
-smoke %>%
-  mutate(cursmoke = as.factor(cursmoke)) %>%
-  ggplot(aes(age ,sysbp, group = cursmoke, color = cursmoke)) +
-  geom_smooth(method = "loess", se = F) +
-  ggtitle("Figure 5: Systolic Blood Pressure across Age")
-
-smoke %>%
-  mutate(cursmoke = as.factor(cursmoke)) %>%
-  ggplot(aes(age, diabp, group = cursmoke, color = cursmoke)) +
-  geom_smooth(method = "loess", se = F) +
-  ggtitle("Figure 6: Diastolic Blood Pressure across Age")
-
-smoke %>%
-  mutate(cursmoke = as.factor(cursmoke)) %>%
-  ggplot(aes(age, totchol, cursmoke, group = cursmoke, color = cursmoke)) +
-  geom_smooth(method = "loess", se = F) +
-  ggtitle("Figure 7: Total Cholesterol across Age")
-```
-
-
-```{r}
-#checking missing values (5% rule)
-pMiss <- function(x){sum(is.na(x))/length(x)*100}
-apply(smoke,2,pMiss) #2 indicates columns
-#Remove hdlc, ldlc, glucose, and bpmeds for having more than 5% of missing values.
-```
-It is okay as hdlc, ldlc are highly correlated with totchol, glucose is highy correlated with diabetes, bpmeds is highly correlated with sysbp and diabp. Therefore it won't lose much information to just drop these features.
-
-
-# Question 1
 
 ```{r}
 smoke_vs1 = smoke %>% 
@@ -364,11 +314,14 @@ glmer_1 <- glmer(cursmoke ~ age *sex + (1 | randid),
 summary(glmer_1) 
 ```
 significant. 
+
+
 ```{r}
 #CI age
 -0.23847-1.96*0.01456
 -0.23847+1.96*0.01456
 ```
+
 
 ```{r}
 #CI sex
@@ -384,6 +337,23 @@ significant.
 
 
 #Question 2
+When looking at cigarette packs smoked per day, it appears that the number steadily decreases as individuals get older. The trend once again is the same in each sex however females are smoking less packs a day overall.
+
+```{r}
+
+smoke %>%
+  ggplot(aes(age, cigpday)) +
+  geom_smooth(method = "loess") +
+  ggtitle("Figure 3: Cigarette per Day across Age")
+
+smoke %>%
+  mutate(sex = as.factor(sex)) %>%
+  ggplot(aes(age, cigpday, group = sex, color = sex)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Figure 4: Cigarettes per Day across Age") 
+  
+```
+
 
 
 Variable Selection and confounder identidication:
@@ -561,18 +531,18 @@ Ignore those who did not smoke through the whole study.
 
 pvalue
 ```{r}
-#age
-2*pnorm(-0.06629/0.02622)
+coefs2 <- data.frame(coef(summary(lmer_2)))
+# use normal distribution to approximate p-value
+coefs2$p_value <- 2 * (1 - pnorm(abs(coefs2$t.value)))
+coefs2
 ```
+
 ```{r}
 #CI age
 -0.06629-1.96*0.02622
 -0.06629+1.96*0.02622
 ```
-```{r}
-#sex
-2*pnorm(-15.59130/2.00555)
-```
+
 ```{r}
 #CI sex
 -15.59130-1.96*2.00555
@@ -580,16 +550,37 @@ pvalue
 ```
 
 ```{r}
-#age:sex2      
-2*(1-pnorm(0.17357/0.03739))
-```
-```{r}
 #CI age:sex2      
 0.17357-1.96*0.03739
 0.17357+1.96*0.03739
 ```
 
+# Part 2
+In Figure 5, we see that as systolic blood pressure increases the likelihood of smoking decreases. The trend is not as profound in Figure 6 with diastolic BP or with serum total cholesterol in Figure 7. 
+
+```{r}
+
+smoke %>%
+  mutate(cursmoke = as.factor(cursmoke)) %>%
+  ggplot(aes(age ,sysbp, group = cursmoke, color = cursmoke)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Figure 5: Systolic Blood Pressure across Age")
+
+smoke %>%
+  mutate(cursmoke = as.factor(cursmoke)) %>%
+  ggplot(aes(age, diabp, group = cursmoke, color = cursmoke)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Figure 6: Diastolic Blood Pressure across Age")
+
+smoke %>%
+  mutate(cursmoke = as.factor(cursmoke)) %>%
+  ggplot(aes(age, totchol, cursmoke, group = cursmoke, color = cursmoke)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Figure 7: Total Cholesterol across Age")
+```
+
 #Question 3
+
 ```{r}
 lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
 lm2 <- lm(sysbp ~ cursmoke + sex, data=smoke_vs1)
@@ -614,7 +605,7 @@ b
 c
 !(c>=a & c<=b)
 ```
-age is not confounder
+age is confounder
 
 ```{r}
 lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
@@ -736,7 +727,7 @@ c
 ```
 not confounder
 
-By rule of thumb, bmi is confounder. Based on the literature view, age and sex can be potential confounders as they can affect smoke status and sysbp at the same time. So we still put them into model.
+By rule of thumb, age and bmi are confounders. Based on the literature view, sex can be potential confounders as they can affect smoke status and sysbp at the same time. So we still put it into model.
 
 ```{r}
 smoke_vs5 = smoke %>% 
@@ -746,7 +737,6 @@ smoke_vs5 = smoke %>%
 ```
 
 
-no interaction term because not significant
 ```{r}
 
 lmer_3 <- lmer(sysbp ~ cursmoke + bmi + sex + age + (1|randid), data = smoke_vs5)
@@ -755,39 +745,35 @@ summary(lmer_3)
 Calculating p value using normal approximation:
 
 ```{r}
-#cursmoke
-2*(pnorm(-0.008418/0.432847))
+coefs3 <- data.frame(coef(summary(lmer_3)))
+# use normal distribution to approximate p-value
+coefs3$p_value <- 2 * (1 - pnorm(abs(coefs3$t.value)))
+coefs3
 ```
-Not significant,but include because this is our interest
+
+No interaction term because not significant
+
+Cursmoke not significant,but include because this is our interest
 ```{r}
 #cursmoke 95% CI 
 -0.008418-1.96*0.432847
 -0.008418+1.96*0.432847
 ```
-```{r}
-#bmi
-2*(1-pnorm(1.443149/0.057512))
-```
+
 ```{r}
 #CI bmi
 1.443149-1.96*0.057512
 1.443149+1.96*0.057512
 ```
 
-```{r}
-#sex
-2*(1-pnorm(2.609485/0.552576))
-```
+
 ```{r}
 #95%CI sex
 2.609485-1.96*0.552576
 2.609485+1.96*0.552576
 ```
 
-```{r}
-#age
-2*(1-pnorm(0.855104/0.020583))
-```
+
 ```{r}
 #age
 0.855104-1.96*0.020583
@@ -968,9 +954,10 @@ summary(lmer_4)
 pvalue
 
 ```{r}
-coefs4<- data.frame(coef(summary(lmer_4)))
-pvalue<-round(2*(1-pnorm(abs(coefs4$t.value))),3)
-pvalue
+coefs4 <- data.frame(coef(summary(lmer_4)))
+# use normal distribution to approximate p-value
+coefs4$p_value <- 2 * (1 - pnorm(abs(coefs4$t.value)))
+coefs4
 ```
 cursmoke1:bmi not siginificant, remove this iteraction
 
@@ -981,48 +968,36 @@ summary(lmer_41)
 ```
 
 ```{r}
-#cursmoke
-2*(pnorm(-8.81416/1.17670))
+coefs41 <- data.frame(coef(summary(lmer_41)))
+# use normal distribution to approximate p-value
+coefs41$p_value <- 2 * (1 - pnorm(abs(coefs41$t.value)))
+coefs41
 ```
+
+
 ```{r}
 #CI cursmoke
 -8.81416-1.96*1.17670
 -8.81416+1.96*1.17670
 ```
-```{r}
-#bmi
-2*(1-pnorm(1.02005/0.03139))
-```
+
 ```{r}
 #CIbmi
 1.02005-1.96*0.03139
 1.02005+1.96*0.03139
 ```
 
-```{r}
-#sex
-2*(pnorm(-0.53287/0.29288))
-```
-although not significant, it is confounder, so we still put in into the model
+sex although not significant, it is confounder, so we still put in into the model
 ```{r}
 #CI sex
 -0.53287-1.96*0.29288
 -0.53287+1.96*0.29288
 ```
-```{r}
-#age
-2*pnorm(-0.05110/0.01442)
-```
+
 ```{r}
 #CI age
 -0.05110-1.96*0.01442
 -0.05110+1.96*0.01442
-```
-
-
-```{r}
-#cursmoke1:age   
-2*(1-pnorm(0.16118/0.02129 ))
 ```
 
 ```{r}
@@ -1232,38 +1207,34 @@ This plot argues for some interaction of the two predictors, as the lines are no
 lmer_5 <- lmer(totchol ~ cursmoke*bmi + sex +cursmoke*age + (1|randid), data = smoke_vs7)
 summary(lmer_5)
 ```
+
 ```{r}
-#cursmoke
-2*pnorm(-29.38692/7.05633)
+coefs5 <- data.frame(coef(summary(lmer_5)))
+# use normal distribution to approximate p-value
+coefs5$p_value <- 2 * (1 - pnorm(abs(coefs5$t.value)))
+coefs5
 ```
+
+
 ```{r}
 #CI cursmoke
 -29.38692-1.96*7.05633
 -29.38692+1.96*7.05633
 ```
-```{r}
-#bmi
-2*(1-pnorm(1.45643/0.15257))
-```
+
 ```{r}
 #CI bmi
 1.45643-1.96*0.15257
 1.45643+1.96*0.15257
 ```
-```{r}
-#sex
-2*(1-pnorm(13.94202/1.22545))
-```
+
 ```{r}
 #CI sex
 13.94202-1.96*1.22545
 13.94202+1.96*1.22545
 ```
 
-```{r}
-#age
-2*(1-pnorm(0.32861/0.05514))
-```
+
 
 ```{r}
 #CI age
@@ -1271,20 +1242,14 @@ summary(lmer_5)
 0.32861+1.96*0.05514
 ```
 
-```{r}
-#cursmoke1:bmi   
-2*(1-pnorm(0.74739/0.21240))
-```
+
 ```{r}
 #CI cursmoke1:bmi   
 0.74739-1.96*0.21240
 0.74739+1.96*0.21240
 ```
 
-```{r}
-#cursmoke1:age   
-2*(1-pnorm(0.26381/0.08053))
-```
+
 ```{r}
 #CI  cursmoke1:age   
 0.26381-1.96*0.08053
