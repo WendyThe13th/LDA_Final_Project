@@ -1,0 +1,1327 @@
+---
+title: "final project mopv"
+author: "MeOak Place"
+date: "12/15/2018"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+
+```{r setup, include = FALSE, echo = TRUE, message = FALSE, results = FALSE, warning = FALSE}
+library(broom)
+library(corrplot)
+library(dplyr)
+library(ggplot2)
+library(janitor)
+library(knitr)
+library(lme4)
+library(mice)
+library(tidyr)
+
+knitr::opts_chunk$set(
+  warning = FALSE,
+  message = FALSE,
+  results = FALSE,
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "50%")
+```
+
+
+```{r}
+## EDA for missing values
+smoke <- read.csv(file = 'frmgham2.csv') %>% 
+  clean_names()
+
+## checking missing values (5% rule)
+pMiss <- function(x){sum(is.na(x))/length(x)*100}
+apply(smoke,2,pMiss) #2 indicates columns
+
+
+## Remove hdlc, ldlc, glucose, and bpmeds for having more than 5% of missing values.
+smoke_vs1 = smoke %>% 
+  filter(period==1) %>% 
+  dplyr::select(c(randid,sex,age,cursmoke,totchol,bmi,heartrte,educ,diabp,sysbp,diabetes,prevap,prevchd,prevmi,prevstrk,prevhyp)) %>% 
+  mutate(cursmoke = as.factor(cursmoke), sex=as.factor(sex), diabetes=as.factor(diabetes)) %>% 
+  na.omit()
+## For those variables with less then 5% missing data, observations were removed.  (i.e. no imputation performed on missing values)
+```
+
+
+# Question 1
+
+## Identification of potential confounders
+
+```{r}
+## Prevalent Hypertensive. 
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+prevhyp, data=smoke_vs1,family = 'binomial')
+
+#########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((exp(summary(glm1)$coefficients[2]) - exp(summary(glm2)$coefficients[2])) / exp(summary(glm2)$coefficients[2])) * 100
+## [1] 0.390565 -- % diff between age coefficients b/t glm1&glm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((exp(summary(glm1)$coefficients[3]) - exp(summary(glm2)$coefficients[3])) / exp(summary(glm2)$coefficients[3])) * 100
+## [1] 0.4203757 -- % diff between sex coefficients b/t glm1&glm2; not a cf
+
+## prevhyp is not confounder for sex and age with cursmoke
+```
+
+
+```{r}
+## Prevalent Stroke
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+prevstrk, data=smoke_vs1,family = 'binomial')
+
+#########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((exp(summary(glm1)$coefficients[2]) - exp(summary(glm2)$coefficients[2])) / exp(summary(glm2)$coefficients[2])) * 100
+## [1] 0.01235394 -- % diff between age coefficients b/t glm1&glm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((exp(summary(glm1)$coefficients[3]) - exp(summary(glm2)$coefficients[3])) / exp(summary(glm2)$coefficients[3])) * 100
+## 1] 0.002629692 -- % diff between sex coefficients b/t glm1&glm2; not a cf
+
+## prevstrk is not confounder for sex and age with cursmoke
+```
+
+
+```{r}
+## Prevalent Myocardial Infarction
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+prevmi, data=smoke_vs1,family = 'binomial')
+
+#########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((exp(summary(glm1)$coefficients[2]) - exp(summary(glm2)$coefficients[2])) / exp(summary(glm2)$coefficients[2])) * 100
+## [1] 0.06734953 -- % diff between age coefficients b/t glm1&glm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((exp(summary(glm1)$coefficients[3]) - exp(summary(glm2)$coefficients[3])) / exp(summary(glm2)$coefficients[3])) * 100
+## [1] 1.067897 -- % diff between sex coefficients b/t glm1&glm2; not a cf
+
+## prevmi is not confounder for sex and age with cursmoke
+```
+
+
+```{r}
+## Prevalent Coronary Heart Disease 
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+prevchd, data=smoke_vs1,family = 'binomial')
+
+#########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((exp(summary(glm1)$coefficients[2]) - exp(summary(glm2)$coefficients[2])) / exp(summary(glm2)$coefficients[2])) * 100
+## [1] 0.03469214 -- % diff between age coefficients b/t glm1&glm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((exp(summary(glm1)$coefficients[3]) - exp(summary(glm2)$coefficients[3])) / exp(summary(glm2)$coefficients[3])) * 100
+## [1] 0.2778121 -- % diff between sex coefficients b/t glm1&glm2; not a cf
+
+## prevchd is not confounder for sex and age with cursmoke
+```
+
+
+
+```{r}
+## Prevalent Angina Pectoris at exam
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+prevap, data=smoke_vs1,family = 'binomial')
+
+#########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((exp(summary(glm1)$coefficients[2]) - exp(summary(glm2)$coefficients[2])) / exp(summary(glm2)$coefficients[2])) * 100
+## [1] 0.03561141 -- % diff between age coefficients b/t glm1&glm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((exp(summary(glm1)$coefficients[3]) - exp(summary(glm2)$coefficients[3])) / exp(summary(glm2)$coefficients[3])) * 100
+## [1] 0.2606049 -- % diff between sex coefficients b/t glm1&glm2; not a cf
+
+## prevap is not confounder for sex and age with cursmoke
+```
+
+
+```{r}
+## Serum Total Cholesterol (mg/dL)
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+totchol, data=smoke_vs1,family = 'binomial')
+
+#########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((exp(summary(glm1)$coefficients[2]) - exp(summary(glm2)$coefficients[2])) / exp(summary(glm2)$coefficients[2])) * 100
+## [1] 0.1257789 -- % diff between age coefficients b/t glm1&glm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((exp(summary(glm1)$coefficients[3]) - exp(summary(glm2)$coefficients[3])) / exp(summary(glm2)$coefficients[3])) * 100
+## [1] 0.6115748 -- % diff between sex coefficients b/t glm1&glm2; not a cf
+
+## totchol is not confounder for sex and age with cursmoke
+```
+
+
+```{r}
+## Systolic Blood Pressure (mean of last two of three measurements) (mmHg)
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+sysbp, data=smoke_vs1,family = 'binomial')
+
+#########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((exp(summary(glm1)$coefficients[2]) - exp(summary(glm2)$coefficients[2])) / exp(summary(glm2)$coefficients[2])) * 100
+## [1] 0.5150948 -- % diff between age coefficients b/t glm1&glm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((exp(summary(glm1)$coefficients[3]) - exp(summary(glm2)$coefficients[3])) / exp(summary(glm2)$coefficients[3])) * 100
+## [1] 0.7407342 -- % diff between sex coefficients b/t glm1&glm2; not a cf
+
+## sysbp is not confounder for sex and age with cursmoke
+```
+
+
+```{r}
+## Diastolic Blood Pressure (mean of last two of three measurements) (mmHg)
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+diabp, data=smoke_vs1,family = 'binomial')
+
+#########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((exp(summary(glm1)$coefficients[2]) - exp(summary(glm2)$coefficients[2])) / exp(summary(glm2)$coefficients[2])) * 100
+## [1] 0.3804091 -- % diff between age coefficients b/t glm1&glm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((exp(summary(glm1)$coefficients[3]) - exp(summary(glm2)$coefficients[3])) / exp(summary(glm2)$coefficients[3])) * 100
+## [1] 2.271954 -- % diff between sex coefficients b/t glm1&glm2; not a cf
+
+## diabp is is not confounder for sex and age with cursmoke
+```
+
+
+```{r}
+## Body Mass Index, weight in kilograms/height meters squared
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+bmi, data=smoke_vs1,family = 'binomial')
+
+#########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((exp(summary(glm1)$coefficients[2]) - exp(summary(glm2)$coefficients[2])) / exp(summary(glm2)$coefficients[2])) * 100
+## [1] 0.3996838 -- % diff between age coefficients b/t glm1&glm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((exp(summary(glm1)$coefficients[3]) - exp(summary(glm2)$coefficients[3])) / exp(summary(glm2)$coefficients[3])) * 100
+## [1] 8.611817 -- % diff between sex coefficients b/t glm1&glm2; not a cf
+
+## bmi is is not confounder for sex and age with cursmoke
+```
+
+
+```{r}
+## Heart rate (Ventricular rate) in beats/min
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+heartrte, data=smoke_vs1,family = 'binomial')
+
+#########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((exp(summary(glm1)$coefficients[2]) - exp(summary(glm2)$coefficients[2])) / exp(summary(glm2)$coefficients[2])) * 100
+## [1] 0.009174943 -- % diff between age coefficients b/t glm1&glm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((exp(summary(glm1)$coefficients[3]) - exp(summary(glm2)$coefficients[3])) / exp(summary(glm2)$coefficients[3])) * 100
+## [1] 4.304516 -- % diff between sex coefficients b/t glm1&glm2 is 4.305; not a cf
+
+## heartrte is is not confounder for sex and age with cursmoke
+```
+
+
+```{r}
+## Attained Education
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+educ, data=smoke_vs1,family = 'binomial')
+
+#########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((exp(summary(glm1)$coefficients[2]) - exp(summary(glm2)$coefficients[2])) / exp(summary(glm2)$coefficients[2])) * 100
+## [1] 0.09356206 -- % diff between age coefficients b/t glm1&glm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((exp(summary(glm1)$coefficients[3]) - exp(summary(glm2)$coefficients[3])) / exp(summary(glm2)$coefficients[3])) * 100
+## [1] 0.1610224 % diff between sex coefficients b/t glm1&glm2; not a cf
+
+## educ is  not confounder for sex and age with cursmoke
+```
+
+
+```{r}
+## Diabetic according to criteria of first exam treated or first exam with casual glucose of 200 mg/dL or more
+glm1 <- glm(cursmoke ~ age+sex, data=smoke_vs1,family = 'binomial')
+glm2 <- glm(cursmoke ~ age+sex+diabetes, data=smoke_vs1,family = 'binomial')
+
+#########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((exp(summary(glm1)$coefficients[2]) - exp(summary(glm2)$coefficients[2])) / exp(summary(glm2)$coefficients[2])) * 100
+## [1] 0.07727996 -- % diff between age coefficients b/t glm1&glm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((exp(summary(glm1)$coefficients[3]) - exp(summary(glm2)$coefficients[3])) / exp(summary(glm2)$coefficients[3])) * 100
+## [1] 0.3456463 -- % diff between sex coefficients b/t glm1&glm2; not a cf
+
+## diabetes is not confounder for sex and age with cursmoke
+```
+
+
+```{r, results = TRUE}
+## no confounders identified; model with age:sex
+
+## limit data to covariates of interest
+smoke_vs3 = smoke %>% 
+  dplyr::select(c(randid,sex,age,cursmoke)) %>% 
+  mutate(cursmoke = as.factor(cursmoke), 
+         sex=as.factor(sex)) %>% 
+  na.omit()
+
+## visualize data
+smoke_vs3  %>%
+  ggplot(aes(age, cursmoke, group = sex, color = sex)) +
+  geom_jitter(height = 0.1, size = 0.5) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Current Smoking Status across Age by Sex")
+## smoking generally declines with age
+
+
+## model data
+glmer_1 <- glmer(cursmoke ~ age*sex + (1 | randid), data = smoke_vs3, family = binomial)
+summary(glmer_1)  ## all coefficient estimates were found to be significant
+
+######################
+## results table 1 ##
+######################
+coefs1 <- data.frame(round(coef(summary(glmer_1)), 2)); coefs1
+
+#LL CI
+LL_CI_glmer_1 = rbind(
+round(coefs1[1, 1] - 1.96*coefs1[1, 2], 5), ## Intercept
+round(coefs1[2, 1] - 1.96*coefs1[2, 2], 5), ## CI age
+round(coefs1[3, 1] - 1.96*coefs1[3, 2], 5), ## CI sex
+round(coefs1[4, 1] - 1.96*coefs1[4, 2], 5)) ## CI age:sex
+
+## UL CI
+UL_CI_glmer_1 = rbind(
+round(coefs1[1, 1] + 1.96*coefs1[1, 2], 5), ## Intercept
+round(coefs1[2, 1] + 1.96*coefs1[2, 2], 5), ## CI age
+round(coefs1[3, 1] + 1.96*coefs1[3, 2], 5), ## CI sex
+round(coefs1[4, 1] + 1.96*coefs1[4, 2], 5)) ## CI age:sex
+
+results_1 = cbind(coefs1, LL_CI_glmer_1, UL_CI_glmer_1) %>% 
+  dplyr::select(1, 2, 5, 6, 4)
+```
+
+
+# Question 2
+
+
+```{r}
+## variable selection
+smoke_vs2 = smoke %>% 
+  filter(period==1) %>% 
+  dplyr::select(c(randid,sex,age,cigpday,totchol,bmi,heartrte,educ,diabp,sysbp,diabetes)) %>% 
+  mutate(sex=as.factor(sex), diabetes=as.factor(diabetes)) %>% 
+  na.omit()
+```
+
+## Identification of potential confounders bet age and sex with # of cigarettes smoked per day
+
+```{r}
+## Serum Total Cholesterol (mg/dL)
+lm1 <- lm(cigpday ~ age+sex, data=smoke_vs2)
+lm2 <- lm(cigpday ~ age+sex+totchol, data=smoke_vs2)
+
+#########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 5.98917-- % diff between age coefficients for lm1&lm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((summary(lm1)$coefficients[3] - summary(lm2)$coefficients[3]) / summary(lm2)$coefficients[3])*100
+## [1] 0.9520448 -- % diff between sex coefficients for lm1&lm2; not a cf
+
+## totchol is not confounder for age and sex with cigpday
+```
+
+
+
+```{r}
+## Body Mass Index, weight in kilograms/height meters squared
+lm1 <- lm(cigpday ~ age+sex, data=smoke_vs2)
+lm2 <- lm(cigpday ~ age+sex+bmi, data=smoke_vs2)
+
+##########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 7.09452 -- % diff between age coefficients for lm1&lm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((summary(lm1)$coefficients[3] - summary(lm2)$coefficients[3]) / summary(lm2)$coefficients[3])*100
+## [1] 2.097622 -- % diff between sex coefficients for lm1&lm2; not a cf
+
+## bmi is not confounder for age and sex with cigpday
+```
+
+
+
+```{r}
+## Heart rate (Ventricular rate) in beats/min
+lm1 <- lm(cigpday ~ age+sex, data=smoke_vs2)
+lm2 <- lm(cigpday ~ age+sex+heartrte, data=smoke_vs2)
+
+##########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 0.6952164 -- % diff between age coefficients for lm1&lm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((summary(lm1)$coefficients[3] - summary(lm2)$coefficients[3]) / summary(lm2)$coefficients[3])*100
+## [1] 3.411956 -- % diff between sex coefficients for lm1&lm2; not a cf
+
+## heartrte is not confounder for age and sex with cigpday
+```
+
+
+```{r}
+## Attained Education
+lm1 <- lm(cigpday ~ age+sex, data=smoke_vs2)
+lm2 <- lm(cigpday ~ age+sex+educ, data=smoke_vs2)
+
+##########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 2.764036 -- % diff between age coefficients for lm1&lm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((summary(lm1)$coefficients[3] - summary(lm2)$coefficients[3]) / summary(lm2)$coefficients[3])*100
+## [1] 0.1152682 -- % diff between sex coefficients for lm1&lm2; not a cf
+
+## educ is not confounder for age and sex with cigpday
+```
+
+
+```{r}
+## Diastolic Blood Pressure (mean of last two of three measurements) (mmHg)
+lm1 <- lm(cigpday ~ age+sex, data=smoke_vs2)
+lm2 <- lm(cigpday ~ age+sex+diabp, data=smoke_vs2)
+
+##########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 4.302741 -- % diff between age coefficients for lm1&lm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((summary(lm1)$coefficients[3] - summary(lm2)$coefficients[3]) / summary(lm2)$coefficients[3])*100
+## [1] 0.5923237 -- % diff between sex coefficients for lm1&lm2; not a cf
+
+## diabp is not confounder for age and sex with cigpday
+```
+
+
+```{r}
+## Systolic Blood Pressure (mean of last two of three measurements) (mmHg)
+lm1 <- lm(cigpday ~ age+sex, data=smoke_vs2)
+lm2 <- lm(cigpday ~ age+sex+sysbp, data=smoke_vs2)
+
+##########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 2.406528 -- % diff between age coefficients for lm1&lm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((summary(lm1)$coefficients[3] - summary(lm2)$coefficients[3]) / summary(lm2)$coefficients[3])*100
+## [1] 0.1367146 -- % diff between sex coefficients for lm1&lm2; not a cf
+
+## sysbp is not confounder for age and sex with cigpday
+```
+
+
+```{r}
+## Diabetic according to criteria of first exam treated or first exam with casual glucose of 200 mg/dL or more
+lm1 <- lm(cigpday ~ age+sex, data=smoke_vs2)
+lm2 <- lm(cigpday ~ age+sex+diabetes, data=smoke_vs2)
+
+##########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 1.550249 -- % diff between age coefficients for lm1&lm2; not a cf
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((summary(lm1)$coefficients[3] - summary(lm2)$coefficients[3]) / summary(lm2)$coefficients[3])*100
+## [1] 0.1605627 -- % diff between sex coefficients for lm1&lm2; not a cf
+
+## diabetes is not confounder for age and sex with cigpday
+```
+
+
+```{r}
+## visualize data
+smoke %>%
+  mutate(sex = as.factor(sex)) %>%
+  ggplot(aes(age, cigpday, group = sex, color = sex)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Cigarettes Smoked per Day across Age by Sex") 
+```
+
+
+```{r, results = TRUE}
+## reduced dataset after assessing for confounders
+smoke_vs4 = smoke %>% 
+  dplyr::select(c(randid,cigpday,sex,age)) %>% 
+  mutate(sex=as.factor(sex)) %>% 
+  na.omit()
+
+## limited dataset to smokers only
+smoke_vs4_nonsmoker = smoke_vs4 %>% 
+  filter(cigpday == 0) %>% 
+  group_by(randid) %>%
+  summarize(cig_count = sum(cigpday)) %>% 
+  filter(cig_count == 0)
+nonsmoker_id = unique(smoke_vs4_nonsmoker$randid)
+smoke_vs4_smoker = smoke_vs4 %>% 
+  filter(!randid %in% nonsmoker_id)
+
+####################################################################
+## LMER for smokers only ##
+## i.e. ignored those who had zero cigpday throughout entire study
+## i.e. those who did not smoke were excluded from this model)
+####################################################################
+lmer_2 <- lmer(cigpday ~ age * sex + (1 | randid), data = smoke_vs4_smoker)
+summary(lmer_2)
+
+
+######################
+## results table 2 ##
+######################
+coefs2 <- data.frame(round(coef(summary(lmer_2)), 2))
+
+## pval for lmer_2
+coefs2$p_value <- round(2*(1 - pnorm(abs(coefs2$t.value))), 5)
+
+
+#LL CI
+LL_CI_lmer_2 = rbind(
+round(coefs2[1, 1] - 1.96*coefs2[1, 2], 2), ## Intercept
+round(coefs2[2, 1] - 1.96*coefs2[2, 2], 2), ## CI age
+round(coefs2[3, 1] - 1.96*coefs2[3, 2], 2), ## CI sex
+round(coefs2[4, 1] - 1.96*coefs2[4, 2], 2)) ## CI age:sex
+
+## UL CI
+UL_CI_lmer_2 = rbind(
+round(coefs2[1, 1] + 1.96*coefs2[1, 2], 2), ## Intercept
+round(coefs2[2, 1] + 1.96*coefs2[2, 2], 2), ## CI age
+round(coefs2[3, 1] + 1.96*coefs2[3, 2], 2), ## CI sex
+round(coefs2[4, 1] + 1.96*coefs2[4, 2], 2)) ## CI age:sex
+
+results_2 = cbind(coefs2, LL_CI_lmer_2, UL_CI_lmer_2) %>% 
+  dplyr::select(1, 2, 5, 6, 4)
+```
+
+# Question 3
+
+## Identification of confounders b/t cursmoke and sysbp
+
+```{r}
+## Participant sex
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + sex, data=smoke_vs1)
+
+#########################################
+## confounder check: 10% rule for sex ##
+#########################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 3.147992 -- % diff between sex coefficients for lm1&lm2; not a cf
+
+## sex is not confounder
+```
+
+
+```{r}
+## Age at exam (years)
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + age, data=smoke_vs1)
+
+#########################################
+## confounder check: 10% rule for age ##
+#########################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 149.7652 -- % diff between age coefficients for lm1&lm2; AGE is a CONFOUNDER
+
+## age is confounder
+```
+
+
+```{r}
+## Serum Total Cholesterol (mg/dL)
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + totchol, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for totchol ##
+############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 8.017793 -- % diff between totchol coefficients for lm1&lm2; not a cf
+
+## totchol is not confounder
+```
+
+
+```{r}
+## Body Mass Index, weight in kilograms/height meters squared
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + bmi, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for bmi ##
+############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 61.48888 -- % diff between bmi coefficients for lm1&lm2; BMI is a CONFOUNDER
+
+## bmi is confounder
+```
+
+
+```{r}
+## Heart rate (Ventricular rate) in beats/min
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + heartrte, data=smoke_vs1)
+
+##############################################
+## confounder check: 10% rule for heartrte ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 7.409282 -- % diff between heartrte coefficients for lm1&lm2; not a cf
+
+## heartrte is not confounder
+```
+
+
+```{r}
+## Attained Education
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + educ, data=smoke_vs1)
+
+##############################################
+## confounder check: 10% rule for educ ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 1.421427 -- % diff between educ coefficients for lm1&lm2; not a cf
+
+## educ is not confounder
+```
+
+
+```{r}
+## Diabetic according to criteria of first exam treated or first exam with casual glucose of 200 mg/dL or more
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + diabetes, data=smoke_vs1)
+
+##############################################
+## confounder check: 10% rule for diabetes ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 3.723934 -- % diff between diabetes coefficients for lm1&lm2; not a cf
+
+## diabetes is not confounder
+```
+
+
+```{r}
+## Prevalent Angina Pectoris at exam
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + prevap, data=smoke_vs1)
+
+##############################################
+## confounder check: 10% rule for angina ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 2.583982 -- % diff between angina coefficients for lm1&lm2; not a cf
+
+## prevap is not confounder
+```
+
+
+```{r}
+## Prevalent Coronary Heart Disease defined as pre-existing Angina Pectoris, Myocardial Infarction (hospitalized, silent or unrecognized), or Coronary Insufficiency (unstable angina)
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + prevchd, data=smoke_vs1)
+
+##############################################
+## confounder check: 10% rule for chd ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 1.307933 -- % diff between chd coefficients for lm1&lm2; not a cf
+
+## chd not confounder
+```
+
+
+```{r}
+## Prevalent Myocardial Infarction
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + prevmi, data=smoke_vs1)
+
+##############################################
+## confounder check: 10% rule for prevmi ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 0.7243338 -- % diff between prevmi coefficients for lm1&lm2; not a cf
+
+## prevmi not confounder
+```
+
+
+```{r}
+## Prevalent Stroke
+lm1 <- lm(sysbp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(sysbp ~ cursmoke + prevstrk, data=smoke_vs1)
+
+##############################################
+## confounder check: 10% rule for prevstrk ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 1.192453 -- % diff between prevstrk coefficients for lm1&lm2; not a cf
+
+## prevstrk not confounder
+```
+
+
+```{r, results = TRUE}
+##########################
+## data prep for lmer_3 ##
+##########################
+smoke_vs5 = smoke %>% 
+  dplyr::select(c(randid,cursmoke,sex,age,bmi,sysbp)) %>% 
+  mutate(cursmoke=as.factor(cursmoke), 
+         sex=as.factor(sex)) %>% 
+  na.omit()
+
+####################
+## visualization ##
+####################
+smoke_vs5 %>%
+  ggplot(aes(age, sysbp, group = cursmoke, color = cursmoke)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Systolic Blood Pressure across Age by Current Smoking Status")
+## Among both non-smokers and smokers, there appears to be a generally linear relationship between systolic bp and age.
+## No interaction
+
+smoke_vs5 %>% 
+  ggplot(aes(age, sysbp, group = sex, color = sex)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Systolic Blood Pressure across Age by Sex")
+## Among both males and females, there appears to be a generally linear relationship between systolic bp and age.
+## In addition, there appears to be some interaction between age and sex becasue the two lines are not parallel (i.e. intersect).
+## age:sex -- not including bc not of interest
+
+smoke_vs5 %>% 
+  ggplot(aes(bmi, sysbp, group = cursmoke, color = cursmoke)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Systolic Blood Pressure across BMI by Current Smoking Status")
+## Among both non-smokers and smokers, there appears to be a generally linear relationship between systolic bp and age.
+## In addition, there appears to be some interaction between bmi and cursmoke becasue the two lines are not parallel (i.e. intersect).
+## bmi:cursmoke
+
+smoke_vs5 %>% 
+  ggplot(aes(bmi, sysbp, group = sex, color = sex)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Systolic Blood Pressure across BMI by Sex")
+## Among both males and females, there appears to be a generally linear relationship between systolic bp and bmi.
+## In addition, there appears to be some interaction between bmi and sex becasue the two lines are not parallel (i.e. intersect).
+## bmi:sex -- not including bc not of interest
+```
+
+
+```{r, results = TRUE}
+## model lmer_3
+lmer_3 <- lmer(sysbp ~ cursmoke + age + sex + bmi*cursmoke + (1|randid), data = smoke_vs5)
+summary(lmer_3)
+## added interaction term for bmi:cursmoke bc of plot and bc cursmoke is of interest
+
+
+######################
+## results table 3 ##
+######################
+coefs3 <- data.frame(round(coef(summary(lmer_3)), 2))
+
+## pvalues for lmer_3
+coefs3$p_value <- round(2 * (1 - pnorm(abs(coefs3$t.value))),5)
+
+#LL CI
+LL_CI_lmer_3 = rbind(
+round(coefs3[1, 1] - 1.96*coefs3[1, 2], 2), ## Intercept
+round(coefs3[2, 1] - 1.96*coefs3[2, 2], 2), ## CI cursmoke
+round(coefs3[3, 1] - 1.96*coefs3[3, 2], 2), ## CI age
+round(coefs3[4, 1] - 1.96*coefs3[4, 2], 2), ## CI sex
+round(coefs3[5, 1] - 1.96*coefs3[5, 2], 2), ## CI bmi
+round(coefs3[6, 1] - 1.96*coefs3[6, 2], 2)) ## CI cursmoke:bmi
+
+## UL CI
+UL_CI_lmer_3 = rbind(
+round(coefs3[1, 1] + 1.96*coefs3[1, 2], 2), ## Intercept
+round(coefs3[2, 1] + 1.96*coefs3[2, 2], 2), ## CI cursmoke
+round(coefs3[3, 1] + 1.96*coefs3[3, 2], 2), ## CI age
+round(coefs3[4, 1] + 1.96*coefs3[4, 2], 2), ## CI sex
+round(coefs3[5, 1] + 1.96*coefs3[5, 2], 2), ## CI bmi
+round(coefs3[6, 1] + 1.96*coefs3[6, 2], 2)) ## CI cursmoke:bmi
+
+results_3 = cbind(coefs3, LL_CI_lmer_3, UL_CI_lmer_3) %>% 
+  dplyr::select(1, 2, 5, 6, 4)
+```
+
+
+# Question 4
+
+## Identification of confounders b/t cursmoke and diasbp
+
+```{r}
+## Sex
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + sex, data=smoke_vs1)
+
+##############################################
+## confounder check: 10% rule for sex ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 11.34421 -- % diff between sex coefficients for lm1&lm2; SEX is a CONFOUNDER
+```
+
+
+```{r}
+## Age
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + age, data=smoke_vs1)
+
+##############################################
+## confounder check: 10% rule for age ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 59.05156 -- % diff between age coefficients for lm1&lm2; AGE is a CONFOUNDER
+```
+
+
+```{r}
+## Total Cholesterol
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + totchol, data=smoke_vs1)
+
+##############################################
+## confounder check: 10% rule for totchol ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 8.297663 -- % diff between totchol coefficients for lm1&lm2; not a cf
+```
+
+
+```{r}
+## BMI
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + bmi, data=smoke_vs1)
+
+##############################################
+## confounder check: 10% rule for bmi ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 126.3913 -- % diff between bmi coefficients for lm1&lm2; BMI is a CONFOUNDER
+```
+
+
+```{r}
+## Heartrate
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + heartrte, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for heartrate ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 9.147251 -- % diff between heartrate coefficients for lm1&lm2; not a cf
+```
+
+
+```{r}
+## educ
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + educ, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for educ ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 0.7884302 -- % diff between educ coefficients for lm1&lm2; not a cf
+```
+
+
+```{r}
+## diabetes
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + diabetes, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for diabetes ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 1.952694 -- % diff between diabetes coefficients for lm1&lm2; not a cf
+```
+
+
+```{r}
+## Angina
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + prevap, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for prevap ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 2.258716 -- % diff between prevap coefficients for lm1&lm2; not a cf
+```
+
+
+```{r}
+## CHD
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + prevchd, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for chd ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 0.964231 -- % diff between chd coefficients for lm1&lm2; not a cf
+```
+
+
+```{r}
+## Prevalent Myocardial Infarction
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + prevmi, data=smoke_vs1)
+
+
+#############################################
+## confounder check: 10% rule for prevmi ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 0.3524298 -- % diff between prevmi coefficients for lm1&lm2; not a cf
+```
+
+
+```{r}
+## Prevalent Stroke
+lm1 <- lm(diabp ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(diabp ~ cursmoke + prevstrk, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for stroke ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 0.9934274 -- % diff between stroke coefficients for lm1&lm2; not a cf
+```
+
+
+```{r, results = TRUE}
+## data prep
+smoke_vs6 = smoke %>% 
+  dplyr::select(c(randid, cursmoke, sex, age, bmi, diabp)) %>% 
+  mutate(sex=as.factor(sex),
+         cursmoke=as.factor(cursmoke)) %>% 
+  na.omit()
+
+############################################
+## visualization & check for interaction ##
+############################################
+smoke_vs6 %>% 
+  ggplot(aes(age, diabp, group = cursmoke, color = cursmoke)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Diastolic BP across Age by Current Smoking Status")
+## Among both non-smokers and smokers, there appears to be a curvilinear relationship between Diastolic BP and age.
+## No interaction
+
+smoke_vs6 %>% 
+  ggplot(aes(age, diabp, group = sex, color = sex)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Diastolic BP across Age by Sex")
+## Among both males (1 = male; red) and females (2 = females; blue-green), there appears to be a curvilinear relationship between Diastolic BP and age.
+## In addition, there appears to be some interaction between age and sex because the two plots intersect.
+## age:sex
+
+smoke_vs6 %>% 
+  ggplot(aes(bmi, diabp, group = cursmoke, color = cursmoke)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Diastolic BP across BMI by Current Smoking Status")
+## Among both non-smokers and smokers, there appears to be a generally linear relationship between Diastolic BP and bmi.
+## In addition, there appears to be some interaction between bmi and current smoking status.
+## bmi:cursmoke
+
+smoke_vs6 %>% 
+  ggplot(aes(bmi, diabp, group = sex, color = sex)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Diastolic BP across BMI by Sex")
+## Among both males and females, there appears to be a curvilinear relationship between diastolic and bmi.
+## In addition, there appears to be some interaction between bmi and sex.
+## bmi:sex
+```
+
+
+```{r, results = TRUE}
+## lmer
+lmer_4 <- lmer(diabp ~ cursmoke*age + sex + bmi + (1|randid), data = smoke_vs6)
+summary(lmer_4)
+
+################
+## results_4 ##
+################
+coefs4 <- data.frame(round(coef(summary(lmer_4)), 2))
+
+## pvalues for lmer_4
+coefs4$p_value <- round(2 * (1 - pnorm(abs(coefs4$t.value))),5); coefs4
+
+#LL CI
+LL_CI_lmer_4 = rbind(
+round(coefs4[1, 1] - 1.96*coefs4[1, 2], 2), ## Intercept
+round(coefs4[2, 1] - 1.96*coefs4[2, 2], 2), ## CI cursmoke
+round(coefs4[3, 1] - 1.96*coefs4[3, 2], 2), ## CI age
+round(coefs4[4, 1] - 1.96*coefs4[4, 2], 2), ## CI sex
+round(coefs4[5, 1] - 1.96*coefs4[5, 2], 2), ## CI bmi
+round(coefs4[6, 1] - 1.96*coefs4[6, 2], 2)) ## CI cursmoke:age 
+
+
+## UL CI
+UL_CI_lmer_4 = rbind(
+round(coefs4[1, 1] + 1.96*coefs4[1, 2], 2), ## Intercept
+round(coefs4[2, 1] + 1.96*coefs4[2, 2], 2), ## CI cursmoke
+round(coefs4[3, 1] + 1.96*coefs4[3, 2], 2), ## CI age
+round(coefs4[4, 1] + 1.96*coefs4[4, 2], 2), ## CI sex
+round(coefs4[5, 1] + 1.96*coefs4[5, 2], 2), ## CI bmi
+round(coefs4[6, 1] + 1.96*coefs4[6, 2], 2)) ## CI cursmoke:age
+
+results_4 = cbind(coefs4, LL_CI_lmer_4, UL_CI_lmer_4) %>% 
+  dplyr::select(1, 2, 5, 6, 4)
+```
+
+
+# Question 5
+
+## Identification of confounders
+
+```{r}
+## Sex
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + sex, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for sex ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 33.27236 -- % diff between sex coefficients for lm1&lm2; SEX is a CONFOUNDER
+```
+
+
+```{r}
+## Age
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + age, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for age ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 1512.344 -- % diff between age coefficients for lm1&lm2; AGE is a CONFOUNDER
+```
+
+
+```{r}
+## diastolic bp
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + diabp, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for diabp ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 54.94285 -- % diff between diabp coefficients for lm1&lm2; DIABP is a CONFOUNDER
+```
+
+
+```{r}
+## BMI
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + bmi, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for bmi ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 61.62978 -- % diff between bmi coefficients for lm1&lm2; BMI is a CONFOUNDER
+```
+
+
+```{r}
+## Heartrate
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + heartrte, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for heartrate ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 9.654717 -- % diff between heartrate coefficients for lm1&lm2; not a cf
+```
+
+
+```{r}
+## educ
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + educ, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for educ ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 0.534969 -- % diff between educ coefficients for lm1&lm2; not a cf
+```
+
+
+```{r}
+## sysbp
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + sysbp, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for sysbp ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 114.522 -- % diff between sysbp coefficients for lm1&lm2; SYSBP is a CONFOUNDER
+```
+
+
+```{r}
+## diabetes
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + diabetes, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for diabetes ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 3.847935 -- % diff between diabetes coefficients for lm1&lm2; not a cf
+```
+
+
+```{r}
+## prevap
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + prevap, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for prevap ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 1.778326 -- % diff between prevap coefficients for lm1&lm2; not a cf
+```
+
+
+```{r}
+## prevchd
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + prevchd, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for prevchd##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 0.828466 -- % diff between prevchd coefficients for lm1&lm2; not a cf
+```
+
+
+```{r}
+## prevmi
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + prevmi, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for prevmi ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 0.6781266 -- % diff between prevmi coefficients for lm1&lm2; not a cf
+```
+
+
+```{r}
+## stroke
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + prevstrk, data=smoke_vs1)
+
+#############################################
+## confounder check: 10% rule for prevstroke ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 0.07024379 -- % diff between prevstroke coefficients for lm1&lm2; not a cf
+```
+
+
+```{r}
+## prevhyp
+lm1 <- lm(totchol ~ cursmoke, data=smoke_vs1)
+lm2 <- lm(totchol ~ cursmoke + prevhyp, data=smoke_vs1)
+
+
+#############################################
+## confounder check: 10% rule for prevhyp ##
+##############################################
+abs((summary(lm1)$coefficients[2] - summary(lm2)$coefficients[2]) / summary(lm2)$coefficients[2])*100
+## [1] 53.84925 -- % diff between prevhyp coefficients for lm1&lm2; PREVHYP is a CONFOUNDER
+```
+
+
+```{r, results = TRUE}
+## data prep for modeling
+smoke_vs7 = smoke %>% 
+  dplyr::select(c(randid, totchol, cursmoke, sex, age, bmi)) %>% 
+  mutate(cursmoke = as.factor(cursmoke), 
+         sex = as.factor(sex)) %>% 
+  na.omit()
+
+####################
+## visualization ##
+####################
+smoke_vs7 %>% 
+  ggplot(aes(age, totchol, group = cursmoke, color = cursmoke)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Total Cholesterol across Age by Current Smoking Status")
+## Among both non-smokers and smokers, there appears to be a curvilinear relationship between total cholesterol and age.
+## In addition, there appears to be some interaction between age and current smoking status becasue the two lines intersect(?).
+## cursmoke:age
+
+smoke_vs7 %>% 
+  ggplot(aes(age, totchol, group = sex, color = sex)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Total Cholesterol across Age by Sex")
+## Among both males and females, there appears to be a curvilinear relationship between total cholesterol and age.
+## In addition, there appears to be some interaction between age and sex because the two plots intersect.
+## age:sex --- will not include
+
+smoke_vs7 %>% 
+  ggplot(aes(bmi, totchol, group = cursmoke, color = cursmoke)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Total Cholesterol across BMI by Current Smoking Status")
+## Among both non-smokers and smokers, there appears to be a curvilinear relationship between total cholesterol and bmi.
+## In addition, there appears to be some interaction between bmi and current smoking status.
+## bmi:cursmoke
+
+smoke_vs7 %>% 
+  ggplot(aes(bmi, totchol, group = sex, color = sex)) +
+  geom_smooth(method = "loess", se = F) +
+  ggtitle("Total Cholesterol across BMI by Sex")
+## Among both males and females, there appears to be a curvilinear relationship between total cholesterol and bmi.
+## In addition, there appears to be no interaction between bmi and current smoking status.
+```
+
+
+
+```{r, results = TRUE}
+lmer_5 <- lmer(totchol ~ cursmoke*bmi + sex + cursmoke*age + (1|randid), data = smoke_vs7)
+summary(lmer_5)
+## MOP Q:  why not include quadratic terms since the relationships with tochol are all curvilinear?
+
+#############
+## results_5
+#############
+coefs5 <- data.frame(round(coef(summary(lmer_5)), 2))
+coefs5$p_value <- round(2 * (1 - pnorm(abs(coefs5$t.value))),5)
+
+#LL CI
+LL_CI_lmer_5 = rbind(
+round(coefs5[1, 1] - 1.96*coefs5[1, 2], 2), ## Intercept
+round(coefs5[2, 1] - 1.96*coefs5[2, 2], 2), ## CI cursmoke
+round(coefs5[3, 1] - 1.96*coefs5[3, 2], 2), ## CI bmi
+round(coefs5[4, 1] - 1.96*coefs5[4, 2], 2), ## CI sex
+round(coefs5[5, 1] - 1.96*coefs5[5, 2], 2), ## CI age
+round(coefs5[6, 1] - 1.96*coefs5[6, 2], 2), ## CI cursmoke:bmi  
+round(coefs5[7, 1] - 1.96*coefs5[7, 2], 2)) ## CI cursmoke:age 
+
+## UL CI
+UL_CI_lmer_5 = rbind(
+round(coefs5[1, 1] + 1.96*coefs5[1, 2], 2), ## Intercept
+round(coefs5[2, 1] + 1.96*coefs5[2, 2], 2), ## CI cursmoke
+round(coefs5[3, 1] + 1.96*coefs5[3, 2], 2), ## CI bmi
+round(coefs5[4, 1] + 1.96*coefs5[4, 2], 2), ## CI sex
+round(coefs5[5, 1] + 1.96*coefs5[5, 2], 2), ## CI age
+round(coefs5[6, 1] + 1.96*coefs5[6, 2], 2), ## CI cursmoke:bmi  
+round(coefs5[7, 1] + 1.96*coefs5[7, 2], 2)) ## CI cursmoke:age 
+
+results_5 = cbind(coefs5, LL_CI_lmer_5, UL_CI_lmer_5) %>% 
+  dplyr::select(1, 2, 5, 6, 4); results_5
+```
+
+
+```{r, results = TRUE}
+kable(results_1)
+kable(results_2)
+kable(results_3)
+kable(results_4)
+kable(results_5)
+```
+
